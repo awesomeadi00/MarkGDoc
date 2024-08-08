@@ -4,17 +4,221 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 import time
 
+# Markdown Syntax Notes: https://www.markdownguide.org/basic-syntax/
+
 # Path to the service account key file
-SERVICE_ACCOUNT_FILE = "uc_googleapi_dev_credentials.json"
+SERVICE_ACCOUNT_FILE = "credentials.json"
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive",
 ]
 
 
+# Requests Need Fixing: 
+# 1) Styling - No need to call reset function after, find a way to fuse the two 
+# 2) Table Content - See what i_cell, i_row do and if not needed remove
+# 3) Block Quotes (>) Syntax basically is indentations so need to add this
 
-# Google Docs Functionality ======================================================================================================
-# Used to connect to the Google Cloud Console
+# Google Docs API Request Functions ===================================================================================
+def get_header_request(text, level, index):
+    """
+    This returns a Google Doc API Request for a Markdown Header Syntax. 
+    Header Levels: (# Header 1, ## Header 2, ### Header 3, ### Header 4, ##### Header 5, ###### Header 6)
+
+    - Input: Text, Header Level, Index to place in the GDoc
+    - Output: GDoc Request for Header Syntax
+    """
+
+    # print(f"Applying Header formats: Level {level}, Text: {text} at Index: {index}")
+    return (
+        {"insertText": {"location": {"index": index}, "text": text + "\n"}},
+        {
+            "updateParagraphStyle": {
+                "range": {"startIndex": index, "endIndex": index + len(text) + 1},
+                "paragraphStyle": {"namedStyleType": f"HEADING_{level}"},
+                "fields": "namedStyleType",
+            }
+        },
+    )
+
+
+def get_paragraph_request(text, index):
+    """
+    This returns a Google Doc API Request for a Markdown Paragraph Syntax. 
+
+    - Input: Text, Index to place in the GDoc
+    - Output: GDoc Request for Paragraph Syntax
+    """
+    # print(f"Applying Paragraph formats: Text: {text} at Index: {index}")
+    return {"insertText": {"location": {"index": index}, "text": text + "\n"}}
+
+
+def get_horizontal_line_request(index):
+    """
+    This returns a Google Doc API Request for a Markdown Horizontal Line Syntax.
+ 
+    - Input: Index to place in the GDoc
+    - Output: GDoc Request for Horizontal Line Syntax
+    """
+    # print(f"Applying Horizontal Line format at Index: {index}")
+    return {"insertText": {"location": {"index": index}, "text": "\n"}}, {
+        "updateParagraphStyle": {
+            "range": {"startIndex": index, "endIndex": index + 1},
+            "paragraphStyle": {
+                "borderBottom": {
+                    "color": {"color": {"rgbColor": {"red": 0, "green": 0, "blue": 0}}},
+                    "width": {"magnitude": 1, "unit": "PT"},
+                    "padding": {"magnitude": 1, "unit": "PT"},
+                    "dashStyle": "SOLID",
+                }
+            },
+            "fields": "borderBottom",
+        }
+    }
+
+
+def get_blockquote_request(text, frequency, index):
+    """
+    This returns a Google Doc API Request for applying an indentation on text at a particular index in the GDoc
+ 
+    - Input: Text, Frequency of indentation (how many times), Index to place in the GDoc
+    - Output: GDoc Request for Indenting the text
+    """
+
+
+def get_style_request(text, style, index):
+    """
+    This returns a Google Doc API Request for applying some styling for the entire text index
+    Styling Examples: Bolding (**), Italics (_), Bolding + Italics (**_ or_**), Strikethrough (~)
+ 
+    - Input: Text, Styling, Index to place in the GDoc
+    - Output: GDoc Request for Styling Syntax
+    """
+    # print(f"Applying Style formats: {style}, Text: {text} at Index: {index}")
+    style_mapping = {
+        "bold": {"bold": True},
+        "italic": {"italic": True},
+        "strike": {"strike": True}
+    }
+    return {
+        "updateTextStyle": {
+            "range": {"startIndex": index, "endIndex": index + len(text)},
+            "textStyle": style_mapping[style],
+            "fields": style,
+        }
+    }
+
+# Need to test putting this request after the get style request so no need for two functions just one universal one
+def get_reset_text_style_request(index):
+    """
+    This request should be called after a styling call is done to switch off the styling option
+ 
+    - Input: Latest Index after a styled text
+    - Output: GDoc Request for switching off Styling
+    """
+    return {
+        "updateTextStyle": {
+            "range": {"startIndex": index, "endIndex": index + 1},
+            "textStyle": {},
+            "fields": "*",
+        }
+    }
+
+
+def get_unordered_list_request(text, index):
+    """
+    This returns a Google Doc API Request for a Markdown unordered list syntax
+ 
+    - Input: Text, Index to place in the GDoc
+    - Output: GDoc Request for Unordered List Syntax
+    """
+    # print(f"Applying Unordered-list formats: Text: {text} at Index: {index}")
+    return {"insertText": {"location": {"index": index}, "text": text + "\n"}}, {
+        "createParagraphBullets": {
+            "range": {"startIndex": index, "endIndex": index + len(text) + 1},
+            "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
+        }
+    }
+
+
+def get_ordered_list_request(text, index):
+    """
+    This returns a Google Doc API Request for a Markdown ordered list syntax
+ 
+    - Input: Text, Index to place in the GDoc
+    - Output: GDoc Request for Ordered List Syntax
+    """
+    # print(f"Applying Ordered-list formats: Text: {text} at Index: {index}")
+    return (
+        {"insertText": {"location": {"index": index}, "text": text + "\n"}},
+        {
+            "createParagraphBullets": {
+                "range": {"startIndex": index, "endIndex": index + len(text) + 1},
+                "bulletPreset": "NUMBERED_DECIMAL_NESTED",
+            }
+        },
+    )
+
+
+def get_empty_table_request(rows, cols, index):
+    """
+    This returns a Google Doc API Request to create an empty table from Markdown syntax to Google Docs
+ 
+    - Input: Number of Rows, Columns and Index to place the empty table in the GDoc
+    - Output: GDoc Request for Empty Table Creation in GDoc
+    """
+    # print(f"Creating a table of {rows} Rows and {cols} Columns at Index: {index}")
+    table_request = {
+        "insertTable": {"rows": rows, "columns": cols, "location": {"index": index}}
+    }
+    return table_request
+
+
+# Need to see what this i_cell and i_row does... beacuse it is unused
+def get_table_content_request(table_data, index):
+    """
+    This returns a Google Doc API Request to populate the contents of the table inside an existing empty table in the GDoc
+    This includes styling implemented within the table so no need to explicitly call it when this is called
+ 
+    - Input: Table Data: 2D List of the [Rows][Cols], index of the start of the table
+    - Output: Content Insertion Requests for each cell, Styling Requests for each cell, Table ending index
+    """
+    table_requests = []
+    style_requests = []
+
+    # Accounting for table initiation
+    index = index + 1
+    for i_row, row in enumerate(table_data):
+        # For each row we increment
+        index += 1
+        for i_cell, cell in enumerate(row):
+            # For each cell we incremenet
+            index += 1
+
+            # print("Start Index: ", index)
+
+            received_styles, cleaned_cell = clean_and_capture_styles(cell, index)
+            style_requests.extend(received_styles)
+
+            # print(f"Inserting in cell index {index}, content: {cleaned_cell}")
+            table_requests = {
+                "insertText": {"location": {"index": index}, "text": cleaned_cell}
+            }
+
+            # print("Content: ", cleaned_cell)
+            # print("Length of Cell: ", len(cleaned_cell) + 1)
+
+            # Accounting for newline character
+            index += len(cleaned_cell) + 1
+            # print(f"End Index: {index}\n")
+
+    table_end_index = index + 1
+
+    return table_requests, style_requests, table_end_index
+# ========================================================================================================================
+
+# Google Doc Creation Testing ============================================================================================
+
 def authenticate_google_drive():
     creds = service_account.Credentials.from_service_account_file(
         SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -39,39 +243,37 @@ def create_empty_google_doc(document_title):
     doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
     return doc_id, doc_url
 
-
 # Clean markdown styling and capture style requests
 def clean_and_capture_styles(chunk, index):
     requests = []
     bolditalics_match = re.search(r"\*\*\*(.+?)\*\*\*", chunk)
     bold_match = re.search(r"\*\*(.+?)\*\*", chunk)
-    italic_match = re.search(r"\*(.+?)\*", chunk)
-    underline_match = re.search(r"\_(.+?)\_", chunk)
+    italic_match = re.search(r"\_(.+?)\_", chunk)
+    strike_match = re.search(r"\~(.+?)\~", chunk)
 
     if bolditalics_match:
         text = bolditalics_match.group(1).strip()
-        requests.append(get_text_style_request(text, "bold", index))
-        requests.append(get_text_style_request(text, "italic", index))
+        requests.append(get_style_request(text, "bold", index))
+        requests.append(get_style_request(text, "italic", index))
         chunk = re.sub(r"\*\*\*(.+?)\*\*\*", text, chunk)
 
     elif bold_match:
         text = bold_match.group(1).strip()
-        requests.append(get_text_style_request(text, "bold", index))
+        requests.append(get_style_request(text, "bold", index))
         chunk = re.sub(r"\*\*(.+?)\*\*", text, chunk)
 
     elif italic_match:
         text = italic_match.group(1).strip()
-        requests.append(get_text_style_request(text, "italic", index))
-        chunk = re.sub(r"\*(.+?)\*", text, chunk)
-
-    if underline_match:
-        text = underline_match.group(1).strip()
-        requests.append(get_text_style_request(text, "underline", index))
+        requests.append(get_style_request(text, "italic", index))
         chunk = re.sub(r"\_(.+?)\_", text, chunk)
+
+    if strike_match:
+        text = strike_match.group(1).strip()
+        requests.append(get_style_request(text, "underline", index))
+        chunk = re.sub(r"\~(.+?)\~", text, chunk)
 
     cleaned_chunk = chunk
     return requests, cleaned_chunk
-
 
 def parse_markdown_table(markdown_table):
     lines = markdown_table.strip().split("\n")
@@ -82,196 +284,6 @@ def parse_markdown_table(markdown_table):
         row = [cell.strip() for cell in line.split("|")[1:-1]]
         table_data.append(row)
     return table_data
-
-
-# Request Generators
-def get_header_request(level, text, index):
-    # print(f"Applying Header formats: Level {level}, Text: {text}")
-    return (
-        {"insertText": {"location": {"index": index}, "text": text + "\n"}},
-        {
-            "updateParagraphStyle": {
-                "range": {"startIndex": index, "endIndex": index + len(text) + 1},
-                "paragraphStyle": {"namedStyleType": f"HEADING_{level}"},
-                "fields": "namedStyleType",
-            }
-        },
-    )
-
-
-def get_paragraph_request(text, index):
-    # print(f"Applying Paragraph formats: Text: {text}")
-    return {"insertText": {"location": {"index": index}, "text": text + "\n"}}
-
-
-def get_text_style_request(text, style, index):
-    # print(f"Applying Text Style: Style: {style}, Text: {text}")
-    style_mapping = {
-        "bold": {"bold": True},
-        "italic": {"italic": True},
-        "underline": {"underline": True},
-    }
-    return {
-        "updateTextStyle": {
-            "range": {"startIndex": index, "endIndex": index + len(text)},
-            "textStyle": style_mapping[style],
-            "fields": style,
-        }
-    }
-
-
-def get_bullet_point_request(text, index):
-    # print(f"Applying Bullet formats: Text: {text}")
-    return {"insertText": {"location": {"index": index}, "text": text + "\n"}}, {
-        "createParagraphBullets": {
-            "range": {"startIndex": index, "endIndex": index + len(text) + 1},
-            "bulletPreset": "BULLET_DISC_CIRCLE_SQUARE",
-        }
-    }
-
-
-def get_numbered_list_request(text, index):
-    # print(f"Applying Numbered List formats: Text: {text}")
-    return (
-        {"insertText": {"location": {"index": index}, "text": text + "\n"}},
-        {
-            "createParagraphBullets": {
-                "range": {"startIndex": index, "endIndex": index + len(text) + 1},
-                "bulletPreset": "NUMBERED_DECIMAL_NESTED",
-            }
-        },
-    )
-
-
-def get_reset_text_style_request(index):
-    return {
-        "updateTextStyle": {
-            "range": {"startIndex": index, "endIndex": index + 1},
-            "textStyle": {},
-            "fields": "*",
-        }
-    }
-
-
-def get_table_request(table_data, index):
-    rows = len(table_data)
-    cols = len(table_data[0])
-    # print(f"Creating a table of {rows} Rows and {cols} Columns at Index: {index}")
-    table_request = {
-        "insertTable": {"rows": rows, "columns": cols, "location": {"index": index}}
-    }
-    return table_request
-
-
-def get_horizontal_line_request(index):
-    return {"insertText": {"location": {"index": index}, "text": "\n"}}, {
-        "updateParagraphStyle": {
-            "range": {"startIndex": index, "endIndex": index + 1},
-            "paragraphStyle": {
-                "borderBottom": {
-                    "color": {"color": {"rgbColor": {"red": 0, "green": 0, "blue": 0}}},
-                    "width": {"magnitude": 1, "unit": "PT"},
-                    "padding": {"magnitude": 1, "unit": "PT"},
-                    "dashStyle": "SOLID",
-                }
-            },
-            "fields": "borderBottom",
-        }
-    }
-
-
-def get_table_content_request(table_data, table_start_index, docs_service, doc_id):
-    style_requests = []
-
-    # Accounting for table initiation
-    index = table_start_index + 1
-    for i_row, row in enumerate(table_data):
-        # For each row we increment
-        index += 1
-        for i_cell, cell in enumerate(row):
-            # For each cell we incremenet
-            index += 1
-
-            # print("Start Index: ", index)
-
-            received_styles, cleaned_cell = clean_and_capture_styles(cell, index)
-            style_requests.extend(received_styles)
-
-            # print(f"Inserting in cell index {index}, content: {cleaned_cell}")
-            request = {
-                "insertText": {"location": {"index": index}, "text": cleaned_cell}
-            }
-
-            docs_service.documents().batchUpdate(
-                documentId=doc_id, body={"requests": request}
-            ).execute()
-
-            # print("Content: ", cleaned_cell)
-            # print("Length of Cell: ", len(cleaned_cell) + 1)
-
-            # Accounting for newline character
-            index += len(cleaned_cell) + 1
-            # print(f"End Index: {index}\n")
-
-    table_end_index = index + 1
-
-    return style_requests, table_end_index
-
-
-# Inserts the Unconstrained Logo in the header of every page in the Google Docs
-def insert_image_in_header(doc_id, docs_service, image_url):
-    # Create the header first
-    requests = [{"createHeader": {"type": "DEFAULT"}}]
-
-    # Execute the header creation
-    response = (
-        docs_service.documents()
-        .batchUpdate(documentId=doc_id, body={"requests": requests})
-        .execute()
-    )
-
-    # Get the header ID from the response
-    header_id = response["replies"][0]["createHeader"]["headerId"]
-
-    # Insert text to create a paragraph in the header
-    requests = [
-        {"insertText": {"location": {"segmentId": header_id, "index": 0}, "text": " "}},
-        # Insert the image
-        {
-            "insertInlineImage": {
-                "location": {"segmentId": header_id, "index": 1},
-                "uri": image_url,
-                "objectSize": {
-                    "height": {"magnitude": 50, "unit": "PT"},
-                    "width": {"magnitude": 170, "unit": "PT"},
-                },
-            }
-        },
-        # Align the paragraph containing the image
-        {
-            "updateParagraphStyle": {
-                "range": {"segmentId": header_id, "startIndex": 0, "endIndex": 2},
-                "paragraphStyle": {"alignment": "END"},
-                "fields": "alignment",
-            }
-        },
-        # Set the header margin
-        {
-            "updateDocumentStyle": {
-                "documentStyle": {
-                    "marginHeader": {
-                        "magnitude": 15,  # Set header margin to 0.5cm (15pt)
-                        "unit": "PT",
-                    }
-                },
-                "fields": "marginHeader",
-            }
-        },
-    ]
-
-    docs_service.documents().batchUpdate(
-        documentId=doc_id, body={"requests": requests}
-    ).execute()
 
 
 def split_chunks(content):
@@ -342,10 +354,10 @@ def update_google_doc_content(doc_id, docs_service, content_markdown):
             requests.extend(get_header_request(header_level, text, index))
         elif bullet_point_match:
             text = cleaned_chunk[2:].strip()
-            requests.extend(get_bullet_point_request(text, index))
+            requests.extend(get_unordered_list_request(text, index))
         elif numbered_list_match:
             text = re.sub(r"^\d+\.\s", "", cleaned_chunk).strip()
-            requests.extend(get_numbered_list_request(text, index))
+            requests.extend(get_ordered_list_request(text, index))
         elif cleaned_chunk == "---":
             requests.extend(get_horizontal_line_request(index))
         elif table_match:
@@ -365,7 +377,7 @@ def update_google_doc_content(doc_id, docs_service, content_markdown):
                     break
 
             table_data = parse_markdown_table("\n".join(table_lines))
-            table_request = get_table_request(table_data, index)
+            table_request = get_empty_table_request(table_data, index)
 
             docs_service.documents().batchUpdate(
                 documentId=doc_id, body={"requests": table_request}
@@ -437,4 +449,3 @@ def generate_google_docs(content_in_bytes):
 
     print(f"Elapsed Time = {end-start} seconds")
     return doc_url
-# ========================================================================================================================
