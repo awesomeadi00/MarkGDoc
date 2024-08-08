@@ -8,11 +8,11 @@ url = "https://test.pypi.org/simple/"
 verify_ssl = true
 name = "testpypi"
 
-[packages]
-python-dotenv
+[dev-packages]
 pytest = "*"
 
-[dev-packages]
+[packages]
+python-dotenv = "*"
 
 [requires]
 python_version = "3"

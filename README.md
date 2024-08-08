@@ -37,15 +37,19 @@ Contributions are definitely accepted and we are open to growing this package. B
 
 3. **Install pipenv**:
 
-    If you don't have pipenv installed, use pip to install it:
+    First, instantiate a virtual environment and install pipenv using pip:
 
     ```shell
+    python -m venv .venv
+
+    .venv/Scripts/actiavte
+    
     pip install pipenv
     ```
 
 4. **Install dependencies**:
 
-    Use pipenv to create a virtual environment and install the necessary packages:
+    Use pipenv to install all the necessary packages from the Pipfile:
 
     ```shell
     pipenv install --dev
