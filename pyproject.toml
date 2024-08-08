@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "googledocs_parser"
+description = "A package where users can receive pick up lines, rate pickup lines and add pickup lines"
+version = "1.1.0"
+authors = [
+  { name="Aditya Pandhare", email="adityapandhare44@gmail.com" }
+]
+license = { file = "LICENSE" }
+readme = "README.md"
+keywords = ["python", "package", "build", "pyrizz", "pickup-line"]
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.urls]
+"Homepage" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia"
+"Repository" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia.git"
+"Bug Tracker" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia/issues"
+
+[project.scripts]
+pyrizz = "pyrizz.__main__:main"
+
+[tool.setuptools.package-data]
+"pyrizz" = ["data/*"]
