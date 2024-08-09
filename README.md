@@ -17,9 +17,22 @@ In this Python Package, you can now convert your markdown files into your very o
 
 # Running the `__main__.py`
 
-We have curated a `__main__.py` file as an example on how to use this package. We have a folder known as `example_markdown_files` which has several example markdown syntax examples. To test any one of them, you can go to the `__main__.py` file and under the `md_example` variable, you can rename it to whichever filename inside this folder. 
+We have curated a `__main__.py` file as an example on how to use this package. We have a folder known as `example_markdown_files` which has several example markdown syntax examples. 
 
-To do so, you can run the command: 
+To test any one of them, you can go to the `__main__.py` file and under the `md_example` variable, you can rename it to any filename inside this folder. 
+
+### **Important Note:**
+Before you go ahead and run your this program, please make sure that: 
+1. You have a valid and active `credentials.json` key for your Google Cloud Console Project in the project directory (at the same level of this README file)
+
+2. You have setup a Google Docs Service build 
+
+3. You have also created a Google Docs file and have the `doc_id`
+
+Each of these steps above are required for you to run this main as these are the steps needed to instantiate a Google Docs through a Python API. For more information on how to setup a Google Docs File through the Google API: [Guide on How to Setup A Google Docs using API](./gcp_setup/gcp_setup_guide.md)
+
+
+Once properly setup, you can run the command: 
 
 ```
 python src/markgdoc/__main__.py
