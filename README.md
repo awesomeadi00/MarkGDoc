@@ -1,17 +1,30 @@
 # MarkGDoc: Converting Markdown Syntax to Google Docs API Requests
 
-[MarkGDoc GitHub Link](https://github.com/awesomeadi00/Markdoc)
+[MarkGDoc GitHub Link](https://github.com/awesomeadi00/MarkGDoc)
 
 ```
-pip install markdoc
+pip install markgdoc
 ```
 
-Looking to add a dash of humor to your day or spark some laughter in your conversations? PyRizz is here to help! PyRizz is a delightful Python package that provides a collection of randomly generated pickup lines in various categories. Whether you're looking for a clever one-liner, a cheesy quip, or a charming compliment, PyRizz has you covered.
+Don't you just love to use Markdown to take your notes or store information/documents? But what if you want to convert those notes into a Google Docs File? 
+
+Aren't you tired of trying to figure out how to structure your Google Docs API Request for inputting content in a Google Docs file? Tracking indexes?
+
+In this Python Package, you can now convert your markdown files into your very own Google Docs file with ease! We have streamlined every Markdown Syntax to match a properly formatted Google Docs API Request, saving you the nitty gritty time of worrying on how to structure a Google Doc API Request, ensuring everything is now automated!
 
 
 # Key Features
 
- 
+# Running the `__main__.py`
+
+We have curated a `__main__.py` file as an example on how to use this package. We have a folder known as `example_markdown_files` which has several example markdown syntax examples. To test any one of them, you can go to the `__main__.py` file and under the `md_example` variable, you can rename it to whichever filename inside this folder. 
+
+To do so, you can run the command: 
+
+```
+python src/markgdoc/__main__.py
+```
+
 
 # Contributing
 
@@ -24,7 +37,7 @@ Contributions are definitely accepted and we are open to growing this package. B
     Use the following command to clone the Pyrizz repository:
 
     ```shell
-    git clone https://github.com/awesomeadi00/Markdoc.git
+    git clone https://github.com/awesomeadi00/MarkGDoc.git
     ```
 
 2. **Navigate to the project directory**:
@@ -37,25 +50,30 @@ Contributions are definitely accepted and we are open to growing this package. B
 
 3. **Install pipenv**:
 
-    First, instantiate a virtual environment and install pipenv using pip:
+    First make sure you have pipenv installed
 
-    ```shell
-    python -m venv .venv
-
-    .venv/Scripts/actiavte
-    
+    ```shell    
     pip install pipenv
     ```
 
-4. **Install dependencies**:
+4. **Locking Pipfile if Pipfile.lock not present**:
 
-    Use pipenv to install all the necessary packages from the Pipfile:
+   If the Pipfile.lock file is not present or updated, use the following command to lock the pipfile
 
     ```shell
-    pipenv install --dev
+    pipenv lock
     ```
 
-5. **Activate the virtual environment**:
+5. **Install Dependencies**: 
+   
+   Install the dependencies using the following command 
+
+    ```shell
+    pipenv install
+    ```
+    > Note that `pipenv install -dev` install dev-packages as well.
+
+6. **Activate the virtual environment**:
 
     Enter the virtual environment using:
 
@@ -63,11 +81,11 @@ Contributions are definitely accepted and we are open to growing this package. B
     pipenv shell
     ```
 
-6. **Make your changes**:
+7. **Make your changes**:
 
     Make the changes you want to contribute to the project.
 
-7. **Run tests**:
+8. **Run tests**:
 
     Ensure your changes pass all tests using pytest:
 
