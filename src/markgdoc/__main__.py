@@ -1,7 +1,7 @@
 import os
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from markgdoc import markgdoc
+from . import markgdoc
 
 # Initialization for this global variable constant. This is the path to your credentials.json file 
 SERVICE_ACCOUNT_FILE = "credentials.json"
