@@ -1,4 +1,3 @@
-
 # Travel Guide: Exploring Europe
 
 ## Introduction
@@ -8,7 +7,7 @@ Europe is a diverse continent with a rich history, stunning landscapes, and vibr
 1. **Paris, France** - The city of love, known for the Eiffel Tower and exquisite cuisine.
 2. **Rome, Italy** - Home to the Colosseum and rich in ancient history.
 3. **Berlin, Germany** - A blend of modern culture and historical landmarks.
-4. **Barcelona, Spain** - Famous for its architecture, especially the works of Gaudí.
+4. **Barcelona, Spain** - Famous for its architecture, especially the works of Gaudi.
 5. **Amsterdam, Netherlands** - Known for its canals and artistic heritage.
 
 ## Cultural Insights

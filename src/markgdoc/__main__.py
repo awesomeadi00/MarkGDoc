@@ -1,4 +1,5 @@
 import os
+import argparse
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from . import markgdoc
@@ -12,7 +13,7 @@ SCOPES = [
 MARKDOWN_FILES_COUNT = 4
 
 
-def main():
+def main(debug=False):
     print("\n")
     print("███    ███  █████  ██████  ██   ██  ██████  ██████   ██████   ██████ ")
     print("████  ████ ██   ██ ██   ██ ██  ██  ██       ██   ██ ██    ██ ██      ")
@@ -21,10 +22,13 @@ def main():
     print("██      ██ ██   ██ ██   ██ ██   ██  ██████  ██████   ██████   ██████ ")
     print("                                                                     ")
     print("Welcome to MarkGDoc! A Package to convert your Markdown Syntax to your very own Google Docs!\n")
+    
+    if(debug):
+        print("------ DEBUG MODE ON ------\n")
 
     print("First, let's set you up!")
-    credentials_path_input = input("Please provide the path for where your credentials file is: ")
-
+    # credentials_path_input = input("Please provide the path for where your credentials.json file is: ")
+    credentials_path_input = "./credentials.json" # Streamlining it for now (will remove later)
     # Check if the provided path is valid and accessible
     if os.path.isfile(credentials_path_input):
         global SERVICE_ACCOUNT_FILE
@@ -32,9 +36,9 @@ def main():
         print("Credentials file found and set successfully!\n")
     else:
         print("Error: The file path provided does not exist or is not a valid file.")
-        return
+        exit(-1) 
     
-    print("Building...\n")
+    print("Building...")
 
     # Attempt to build the Google Docs service with the updated SERVICE ACCOUNT FILE
     try:
@@ -48,7 +52,7 @@ def main():
         print("Google Docs Service Initialized Successfully!\n")
     except Exception as e:
         print(f"Error: Google Docs service initialization failed. {e}")
-        return
+        exit(-1) 
     
     print("============================================ MARKGDOC MENU ============================================")
     while True: 
@@ -70,7 +74,7 @@ def main():
                     md_content = file.read()
 
                 print("Converting your Markdown to a Google Doc!")
-                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service)
+                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
                 print("Google Doc Link: ", doc_url)
 
             else:
@@ -79,11 +83,11 @@ def main():
         # Example File from Local Project Directory
         elif user_input == "2":
             print(f"We currently have {MARKDOWN_FILES_COUNT} markdown file examples in our system!")
-            md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example")
+            md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
-            while(md_example_fileno > MARKDOWN_FILES_COUNT and md_example_fileno <= 0): 
+            while(int(md_example_fileno) > MARKDOWN_FILES_COUNT and int(md_example_fileno) <= 0): 
                 print("Incorrect Input!")
-                md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example")
+                md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
             md_example_file = f"md_ex{md_example_fileno}"
             md_inputfile = os.path.join(os.path.dirname(__file__), 'example_markdown_files', f"{md_example_file}.md")
@@ -94,7 +98,7 @@ def main():
 
             document_title = "Example Markdown File"
             print("Converting your Markdown to a Google Doc!")
-            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service)
+            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
             print("Google Doc Link: ", doc_url)
 
         elif user_input == "q" or user_input == "Q":
@@ -114,4 +118,7 @@ def main():
             break
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run MarkGDoc with Optional Debugging")
+    parser.add_argument('--debug', action='store_true', help="Enable debug mode")
+    args = parser.parse_args()
+    main(debug=args.debug)

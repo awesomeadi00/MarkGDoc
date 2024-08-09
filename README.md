@@ -1,4 +1,4 @@
-# MarkGDoc: Converting Markdown Syntax to Google Docs API Requests
+# MarkGDoc: Converting Markdown to Google Docs
 
 [MarkGDoc GitHub Link](https://github.com/awesomeadi00/MarkGDoc)
 
@@ -6,16 +6,16 @@
 pip install markgdoc
 ```
 
-Don't you just love to use Markdown to take your notes or store information/documents? But what if you want to convert those notes into a Google Docs File? 
+Don't you just love to use Markdown to take your notes or store information? But what if you want to convert those notes into a Google Docs File? 
 
-Aren't you tired of trying to figure out how to structure your Google Docs API Request for inputting content in a Google Docs file? Tracking indexes?
+As a programmer and dealing with Google Docs API requests, it can seem frustrating to figure out how to structure your request for inputting content in a Google Docs file properly without errors. 
 
-In this Python Package, you can now convert your markdown files into your very own Google Docs file with ease! We have streamlined every Markdown Syntax to match a properly formatted Google Docs API Request, saving you the nitty gritty time of worrying on how to structure a Google Doc API Request, ensuring everything is now automated!
+In this Python Package, you can now convert your markdown files into your very own Google Docs file with ease! We have streamlined every Markdown Syntax to match a properly formatted Google Docs API Request, saving you the nitty gritty time of worrying on how to structure a request, ensuring everything is now automated!
 
 
 # Key Features
 
-# Running the __main__py file 
+# Running the __main__.py file 
 
 ### **Important Note:**
 Before you go ahead and run your this program, please make sure that: 
@@ -33,6 +33,11 @@ Once properly setup, you can run the command:
 python -m src.markgdoc
 ```
 
+Additionally you can also run the program as the following for Debugging Print Statements of all the requests to show in your terminal
+```
+python -m src.markgdoc --debug
+```
+
 
 # Contributing
 
@@ -42,7 +47,7 @@ Contributions are definitely accepted and we are open to growing this package. B
 
 1. **Clone the repository**:
 
-    Use the following command to clone the Pyrizz repository:
+    Use the following command to clone the repository:
 
     ```shell
     git clone https://github.com/awesomeadi00/MarkGDoc.git
@@ -79,7 +84,7 @@ Contributions are definitely accepted and we are open to growing this package. B
     ```shell
     pipenv install
     ```
-    > Note that `pipenv install -dev` install dev-packages as well.
+    > Note that `pipenv install --dev` install dev-packages as well.
 
 6. **Activate the virtual environment**:
 

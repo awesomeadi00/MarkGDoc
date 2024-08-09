@@ -9,7 +9,7 @@ For more information about Google Docs API Requests and how to make them yoursel
 
 ### 1. Create a New Project on the Google Cloud Console (GCP)
 
-- Click on the following Link: [Google Cloud Console]("https://console.cloud.google.com/)
+- Click on the following Link: [Google Cloud Console]("https://console.cloud.google.com/")
 
 - Create a new projecet by clicking on the dropdown menu on the top left and then on `New Project`
 
