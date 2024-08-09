@@ -421,25 +421,9 @@ def update_google_doc_content(doc_id, docs_service, content_markdown):
     rate_limited_batch_update(docs_service, doc_id, all_requests)
 
 
-def generate_google_docs(content_in_bytes):
-    document_title = "Unconstrained Google Doc"
-    # current_dir = os.path.dirname(os.path.abspath(__file__))
-    # header_image_path = os.path.join(current_dir, "../unconstrained_logo.png")
-
+def convert_to_google_docs(content_in_bytes, document_title, docs_service):
     start = time.time()
     doc_id, doc_url = create_empty_google_doc(document_title)
-
-    # Build the google docs service route
-    docs_service = build(
-        "docs",
-        "v1",
-        credentials=service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES
-        ),
-    )
-
-    # insert_image_in_header(doc_id, docs_service, header_image_path)
-
     end = time.time()
 
     def stream_content():
