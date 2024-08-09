@@ -1,4 +1,3 @@
-
 # DIY Project: Building a Bookshelf
 
 ## Introduction

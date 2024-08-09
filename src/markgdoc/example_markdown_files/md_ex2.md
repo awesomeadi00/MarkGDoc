@@ -1,8 +1,8 @@
-
 # Healthy Eating: A Balanced Diet
 
 ## Introduction
 Maintaining a balanced diet is crucial for overall health and well-being. This guide provides tips and insights into creating a healthy eating plan.
+---
 
 ## Key Food Groups
 | Food Group       | Examples                     | Benefits                           |

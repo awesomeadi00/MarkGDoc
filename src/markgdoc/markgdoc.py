@@ -2,7 +2,6 @@ import re
 import threading
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import time
 
 # Markdown Syntax Notes: https://www.markdownguide.org/basic-syntax/
 
@@ -14,10 +13,15 @@ SCOPES = [
 ]
 
 
-# Requests Need Fixing: 
-# 2) Table Content - See what i_cell, i_row do and if not needed remove
-# 3) Block Quotes (>) Syntax basically is indentations so need to add this
-# 4) Links - Need to work on creating a hyperlink syntax on Google Docs
+# To do list: 
+# - Table Content - See what i_cell, i_row do and if not needed remove
+# - Find a way when debug mode is on, you first send the URL, then stream the print statements 
+# - Block Quotes (>) Syntax basically is indentations so need to add this
+# - Links - Need to work on creating a hyperlink syntax on Google Docs
+# - Clean up conversion/helper functions codespace
+# - Add Pytests
+# - Setup TestPyPi Env and continue testing
+# - Setup main PyPi env and continue testing 
 
 # Google Docs API Request Functions ===================================================================================
 # Disclaimer! Every Request has an optional 'debug' parameter. By default this is False, however if switched on as True
@@ -33,7 +37,7 @@ def get_header_request(text, level, index, debug=False):
     """
 
     if(debug): 
-        print(f"Applying Header Request: \n- Level {level}\n- Text: {text}\n- Index: {index}\n")
+        print(f"Applying Header Request: \n- Level {level}\n- Text: {text}\n- Index: {index} - {index+len(text)+1}\n")
     
     return (
         {"insertText": {"location": {"index": index}, "text": text + "\n"}},
@@ -56,7 +60,7 @@ def get_paragraph_request(text, index, debug=False):
     """
 
     if(debug):
-        print(f"Applying Paragraph Request:\n- Text: {text}\n- Index: {index}\n")
+        print(f"Applying Paragraph Request:\n- Text: {text}\n- Index: {index} - {index+len(text)+1}\n")
     
     return {"insertText": {"location": {"index": index}, "text": text + "\n"}}
 
@@ -70,7 +74,7 @@ def get_horizontal_line_request(index, debug=False):
     """
 
     if(debug):
-        print(f"Applying Horizontal Line Request:\n- Index: {index}\n")
+        print(f"Applying Horizontal Line Request:\n- Index: {index} - {index + 1}\n")
 
     return {"insertText": {"location": {"index": index}, "text": "\n"}}, {
         "updateParagraphStyle": {
@@ -141,7 +145,7 @@ def get_unordered_list_request(text, index, debug=False):
     """
 
     if(debug): 
-        print(f"Applying Unordered-list Request:\n- Text: {text}\n- Index: {index}\n")
+        print(f"Applying Unordered-list Request:\n- Text: {text}\n- Index: {index} - {index+len(text)+1}\n")
 
     return {"insertText": {"location": {"index": index}, "text": text + "\n"}}, {
         "createParagraphBullets": {
@@ -160,7 +164,7 @@ def get_ordered_list_request(text, index, debug=False):
     """
 
     if(debug):
-        print(f"Applying Ordered-list Request:\n- Text: {text}\n- Index: {index}\n")
+        print(f"Applying Ordered-list Request:\n- Text: {text}\n- Index: {index} - {index+len(text)+1}\n")
 
     return (
         {"insertText": {"location": {"index": index}, "text": text + "\n"}},
@@ -173,7 +177,7 @@ def get_ordered_list_request(text, index, debug=False):
     )
 
 
-def get_empty_table_request(rows, cols, index, debug=False):
+def  get_empty_table_request(rows, cols, index, debug=False):
     """
     This returns a Google Doc API Request to create an empty table from Markdown syntax to Google Docs
  
@@ -191,7 +195,7 @@ def get_empty_table_request(rows, cols, index, debug=False):
 
 
 # Need to see what this i_cell and i_row does... beacuse it is unused
-def get_table_content_request(table_data, index, debug=False):
+def get_table_content_request(table_data, index, docs_service, doc_id, debug=False):
     """
     This returns a Google Doc API Request to populate the contents of the table inside an existing empty table in the GDoc
     This includes styling implemented within the table so no need to explicitly call it when this is called
@@ -203,7 +207,6 @@ def get_table_content_request(table_data, index, debug=False):
     if(debug): 
         print("Applying Table Content Insertion Request: =========================================\n")
 
-    table_requests = []
     style_requests = []
 
     # Accounting for table initiation
@@ -224,9 +227,13 @@ def get_table_content_request(table_data, index, debug=False):
             if(debug): 
                 print(f"Inserting content: {cleaned_cell} at Index: {index}")
             
-            table_requests = {
+            table_request = {
                 "insertText": {"location": {"index": index}, "text": cleaned_cell}
             }
+
+            docs_service.documents().batchUpdate(
+                documentId=doc_id, body={"requests": table_request}
+            ).execute()
 
             if(debug): 
                 print("Length of Characters in cell: ", len(cleaned_cell) + 1)
@@ -242,7 +249,7 @@ def get_table_content_request(table_data, index, debug=False):
     if(debug): 
         print("===================================================================================\n")
 
-    return table_requests, style_requests, table_end_index
+    return style_requests, table_end_index
 # ========================================================================================================================
 # Google Doc Creation Testing ============================================================================================
 
@@ -425,43 +432,41 @@ def update_google_doc_content(doc_id, docs_service, content_markdown, debug=Fals
             )
             tables = [c for c in content if c.get("table")]
             table_start_index = tables[-1]["startIndex"]
-            table_content_requests, received_styles, table_end_index = get_table_content_request(
-                table_data, table_start_index, debug=debug
+            
+            table_style_requests, table_end_index = get_table_content_request(
+                table_data, table_start_index, docs_service, doc_id, debug=debug
             )
-            requests.extend(table_content_requests)
-            style_requests.extend(received_styles)
+
+            style_requests.extend(table_style_requests)
             index = table_end_index
             requests.append(get_paragraph_request("\n", index, debug=debug))
         else:
             requests.append(get_paragraph_request(cleaned_chunk, index, debug=debug))
 
-        for req_tuple in requests:
-            if isinstance(req_tuple, tuple):
-                for req in req_tuple:
-                    all_requests.append(req)
-                    if "insertText" in req:
-                        index += len(req["insertText"]["text"])
-            else:
-                all_requests.append(req_tuple)
-                if "insertText" in req_tuple:
-                    index += len(req_tuple["insertText"]["text"])
+        for request in requests:
+            all_requests.append(request)
+            if "insertText" in request:
+                index += len(request["insertText"]["text"])
 
-        for req in style_requests:
-            all_requests.append(req)
+        for style_request in style_requests:
+            all_requests.append(style_request)
 
     rate_limited_batch_update(docs_service, doc_id, all_requests)
 
 
 def convert_to_google_docs(content_markdown, document_title, docs_service, debug=False):
-    start = time.time()
     doc_id, doc_url = create_empty_google_doc(document_title)
-    end = time.time()
 
+    if debug: 
+        print(f"Google Doc Link: {doc_url}\n")
     def stream_content():
         update_google_doc_content(doc_id, docs_service, content_markdown, debug=debug)
 
-    threading.Thread(target=stream_content).start()
-
-    print(f"Elapsed Time = {end-start} seconds")
+    content_thread = threading.Thread(target=stream_content)
+    content_thread.start()
+    
+    if debug:
+        content_thread.join()
+    
     return doc_url
     

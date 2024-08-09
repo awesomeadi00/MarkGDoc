@@ -1,4 +1,3 @@
-
 # Fitness Routine: Staying Active
 
 ## Introduction

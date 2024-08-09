@@ -75,7 +75,9 @@ def main(debug=False):
 
                 print("Converting your Markdown to a Google Doc!")
                 doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
-                print("Google Doc Link: ", doc_url)
+                
+                if not debug: 
+                    print(f"Google Doc Link: {doc_url}\n")
 
             else:
                 print("Error: The file path provided does not exist or is not a valid file.")
@@ -99,7 +101,8 @@ def main(debug=False):
             document_title = "Example Markdown File"
             print("Converting your Markdown to a Google Doc!")
             doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
-            print("Google Doc Link: ", doc_url)
+            if not debug: 
+                print(f"Google Doc Link: {doc_url}\n")
 
         elif user_input == "q" or user_input == "Q":
             break
@@ -112,7 +115,7 @@ def main(debug=False):
             if user_cont in ["y", "n"]:
                 break
             else:
-                print("\nPlease provide a valid input (y/n)")
+                print("\nInvalid Input.")
 
         if user_cont == "n" or user_cont == "q" or user_cont == "Q":
             break
