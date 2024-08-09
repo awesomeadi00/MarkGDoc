@@ -64,14 +64,15 @@ def generate_google_docs():
     document_title = "Example Google Doc"
     doc_id, doc_url = create_empty_google_doc(document_title)
 
-    # This is how you build the google docs service build
-    docs_service = build(
-        "docs",
-        "v1",
-        credentials=service_account.Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES
-        ),
-    )
+    # # This is how you build the google docs service build
+    # docs_service = build(
+    #     "docs",
+    #     "v1",
+    #     credentials=service_account.Credentials.from_service_account_file(
+    #         SERVICE_ACCOUNT_FILE, scopes=SCOPES
+    #     ),
+    # )
 
-    # example_function(docs_service, doc_id)
+    # # This is an example function which would need to send Google Doc Requests. In order to do this, you need to send both these variables
+    # example_function(docs_service, doc_id)   
     return doc_url

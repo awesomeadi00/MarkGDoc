@@ -1,5 +1,10 @@
 # Guide on using Google Cloud Platform
 
+In this guide, you will learn how to setup a project on the Google Cloud Platform (GCP) and how to retrieve your credentials.json file which will authenticate your python programs to connect to the API. This way you will be able to create Google Docs from Python, and control what to insert/delete from the Google Docs. 
+
+For more information about Google Docs API Requests and how to make them yourself, visit: [Google Docs API Documentation](https://developers.google.com/docs/api/reference/rest)
+
+
 ## Setting up a Project on Google Cloud Platform (GCP) - Retrieving credentials.json file
 
 ### 1. Create a New Project on the Google Cloud Console (GCP)
@@ -45,3 +50,5 @@
 
 ## Creating a Google Doc using the GCP API
 
+In order to create a Google Doc using the API, take a look at this python file example as to how to set it up! 
+> [Google Doc Creation Python File](./gcp_example.py)
