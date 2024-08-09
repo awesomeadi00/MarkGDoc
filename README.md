@@ -66,8 +66,8 @@ Contributions are definitely accepted and we are open to growing this package. B
 
 5. **Install Dependencies**: 
    
-   Install the dependencies using the following command 
-
+    In order to install the dependencies, first create an empty folder and rename it as `.venv`. After this step is done, then you can install your dependencies through the following command: 
+    
     ```shell
     pipenv install
     ```

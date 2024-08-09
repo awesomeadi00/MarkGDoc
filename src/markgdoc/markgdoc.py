@@ -18,6 +18,7 @@ SCOPES = [
 # 1) Styling - No need to call reset function after, find a way to fuse the two 
 # 2) Table Content - See what i_cell, i_row do and if not needed remove
 # 3) Block Quotes (>) Syntax basically is indentations so need to add this
+# 4) Links - Need to work on creating a hyperlink syntax on Google Docs
 
 # Google Docs API Request Functions ===================================================================================
 def get_header_request(text, level, index):
