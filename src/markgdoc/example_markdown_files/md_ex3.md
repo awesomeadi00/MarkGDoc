@@ -10,13 +10,16 @@ Regular physical activity is essential for maintaining a healthy body and mind. 
 - Stretching major muscle groups
 
 ### Strength Training
-- **Push-Ups:** 3 sets of 10-15 reps
-- **Squats:** 3 sets of 15-20 reps
-- **Lunges:** 3 sets of 10-15 reps per leg
-- **Planks:** 3 sets of 30-60 seconds
+> **Push-Ups:** 3 sets of 10-15 reps
+>> **Squats:** 3 sets of 15-20 reps
+>>> **Lunges:** 3 sets of 10-15 reps per leg
+>>>> **Planks:** 3 sets of 30-60 seconds
 
 ### Cardio
 - 20-30 minutes of moderate-intensity cardio (e.g., running, cycling)
+- [Google Link](https://www.google.com/)
+
+Hello this is another paragraph which referes to a link: [Google Link](https://www.google.com/)
 
 ### Cool Down
 - 5-10 minutes of walking

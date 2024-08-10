@@ -74,7 +74,7 @@ def main(debug=False):
                     md_content = file.read()
 
                 print("Converting your Markdown to a Google Doc!")
-                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
+                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=SERVICE_ACCOUNT_FILE, scopes=SCOPES, debug=debug)
                 
                 if not debug: 
                     print(f"Google Doc Link: {doc_url}\n")
@@ -100,7 +100,7 @@ def main(debug=False):
 
             document_title = "Example Markdown File"
             print("Converting your Markdown to a Google Doc!")
-            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, debug=debug)
+            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=SERVICE_ACCOUNT_FILE, scopes=SCOPES, debug=debug)
             if not debug: 
                 print(f"Google Doc Link: {doc_url}\n")
 
