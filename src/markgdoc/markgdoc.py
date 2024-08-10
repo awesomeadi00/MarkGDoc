@@ -231,18 +231,19 @@ def  get_empty_table_request(rows, cols, index, debug=False):
     return table_request
 
 
-def get_table_content_request(table_data, index, docs_service, doc_id, debug=False):
+def get_table_content_request(table_data, index, debug=False):
     """
     This returns a Google Doc API Request to populate the contents of the table inside an existing empty table in the GDoc
     This includes styling implemented within the table so no need to explicitly call it when this is called
  
-    - Input: Table Data: 2D List of the [Rows][Cols], index of the start of the table, docs_service build, doc_id to append to
+    - Input: Table Data: 2D List of the [Rows][Cols], index of the start of the table
     - Output: Content Insertion Requests for each cell, Styling Requests for each cell, Table ending index
     """
 
     if(debug): 
         print("Applying Table Content Insertion Request: =========================================\n")
 
+    table_requests = []
     style_requests = []
 
     # Accounting for table initiation
@@ -263,13 +264,11 @@ def get_table_content_request(table_data, index, docs_service, doc_id, debug=Fal
             if(debug): 
                 print(f"Inserting content: {cleaned_cell} at Index: {index}")
             
-            table_request = {
+            request = {
                 "insertText": {"location": {"index": index}, "text": cleaned_cell}
             }
 
-            docs_service.documents().batchUpdate(
-                documentId=doc_id, body={"requests": table_request}
-            ).execute()
+            table_requests.append(request)
 
             if(debug): 
                 print("Length of Characters in cell: ", len(cleaned_cell) + 1)
@@ -285,7 +284,7 @@ def get_table_content_request(table_data, index, docs_service, doc_id, debug=Fal
     if(debug): 
         print("===================================================================================\n")
 
-    return style_requests, table_end_index
+    return table_requests, style_requests, table_end_index
 
 # ========================================================================================================================
 # Google Doc Creation Helper Functions ====================================================================================
@@ -446,6 +445,7 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
     # Initializing variables, index = 1 and all_requests list
     chunks = iter(chunks)
     index = 1
+    table_flag = False
     all_requests = []
 
     # For each chunk detected: 
@@ -454,6 +454,7 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         chunk = chunk.strip()
         requests = []
         style_requests = []
+        table_flag = False
 
         # CFirst preprocess any styles recognized in the chunks and store them into the style_requests
         received_styling, cleaned_chunk = preprocess_styles(chunk, index, debug=debug)
@@ -502,6 +503,8 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
 
         # If the chunk has table markdown syntax add the request
         elif table_match:
+            table_flag = True
+
             # If it's a table, first process everything already there in all_requests, then clear it
             send_batch_update(docs_service, doc_id, all_requests)
             all_requests.clear()
@@ -543,14 +546,16 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
             table_start_index = tables[-1]["startIndex"]
             
             # Insert the contents of the table into the empty table 
-            table_style_requests, table_end_index = get_table_content_request(
-                table_data, table_start_index, docs_service, doc_id, debug=debug
+            table_content_requests, table_style_requests, table_end_index = get_table_content_request(
+                table_data, table_start_index, debug=debug
             )
 
-            #  Append the style requests of the table contents and update index accordingly 
+            #  Append the style requests of the table contents and update index accordingly
+            requests.extend(table_content_requests) 
             style_requests.extend(table_style_requests)
             index = table_end_index
             requests.append(get_paragraph_request("\n", index, debug=debug))
+            index += 2 # Update index to account for paragraph since it's not being accounted for due to table_flag
 
         # If the chunk has none of those, then it is likely a paragraph
         else:
@@ -559,7 +564,8 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         #  Append the general requets into the all requests and then appropriately increment the index based on the request text
         for request in requests:
             all_requests.append(request)
-            if "insertText" in request:
+            # Table automatically updates index due to monitoring hence, no need to update index if it's a table
+            if "insertText" in request and not table_flag:
                 index += len(request["insertText"]["text"])
 
         # Append the style requests into the all requests
