@@ -16,6 +16,8 @@ google-auth = "*"
 google-auth-oauthlib = "*"
 google-auth-httplib2 = "*"
 google-api-python-client = "*"
+pipenv = "*"
+shell = "*"
 
 [requires]
 python_version = "3"

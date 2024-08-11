@@ -13,9 +13,19 @@ SCOPES = [
 ]
 
 
-# To do list: 
+# To do list:\
+# - Issue with nested syntax: specifically any further index from when a hyperlink request was made in the same chunk
+"""
+I think the reason for this is because in the several if statements, since hyperlink  if statement is at the bottom, that one gets processed last, 
+even though it is first in that chunk. Since the bold_italics if statement is before that, even though in the chunk that is much later, 
+that gets processed first and this is the chunk which was not updated. 
+
+Hence, this is an issue. Basically what I need to ensure here is that whichever one is detected first, you execute that request first. 
+Because sequentially the chunk would update appropriately and then further stylings can be updated along the way of the chunk
+"""
+
+
 # - Block Quotes (>) Syntax basically is indentations so need to add this
-# - Links - Need to work on creating a hyperlink syntax on Google Docs
 # - Add Pytests
 # - Setup TestPyPi Env and continue testing
 # - Setup main PyPi env and continue testing 
@@ -161,16 +171,24 @@ def get_hyperlink_request(text, url, index, debug=False):
     if debug:
         print(f"Applying Hyperlink Request:\n- Text: {text}\n- URL: {url}\n- Index: {index} - {index + len(text) + 1}\n")
 
-    return (
-        {"insertText": {"location": {"index": index}, "text": text}},
-        {
+    hyperlink_request = {
+        # {"insertText": {"location": {"index": index}, "text": text}},
             "updateTextStyle": {
                 "range": {"startIndex": index, "endIndex": index + len(text)},
                 "textStyle": {"link": {"url": url}},
                 "fields": "link",
             }
-        },
-    )
+        }
+
+    reset_request = {
+        "updateTextStyle": {
+            "range": {"startIndex": index + len(text), "endIndex": (index + len(text)) + 1},
+            "textStyle": {},
+            "fields": "*",
+        }
+    }
+
+    return [hyperlink_request, reset_request]
 
 
 def get_unordered_list_request(text, index, debug=False):
@@ -214,7 +232,7 @@ def get_ordered_list_request(text, index, debug=False):
     )
 
 
-def  get_empty_table_request(rows, cols, index, debug=False):
+def get_empty_table_request(rows, cols, index, debug=False):
     """
     This returns a Google Doc API Request to create an empty table from Markdown syntax to Google Docs
  
@@ -258,7 +276,7 @@ def get_table_content_request(table_data, index, debug=False):
             if(debug): 
                 print("Start Index: ", index)
 
-            received_styles, cleaned_cell = preprocess_styles(cell, index)
+            received_styles, cleaned_cell = preprocess_nested_styles(cell, index)
             style_requests.extend(received_styles)
 
             if(debug): 
@@ -322,41 +340,58 @@ def create_empty_google_doc(document_title, credentials_file, scopes):
     return doc_id, doc_url
 
 
-def preprocess_styles(chunk, index, debug=False):
+def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     """
-    This is a helper function which scans for any styling in a chunk: Including Bolding, Italics, Bold/Italics, Strikethrough 
-    Since markdown can have nested syntax such as styling on top of other syntax, we use this function to 
-    first preprocess the content to store these style_requests and clean the text to remove these styling syntaxes. 
+    This is a helper function which deals with nested markdown syntax. Since you can have multiple markdown syntax in a chunk of text, 
+    we first preprocess the ones that don't rely on text insertion such as styling (bold, italics, strikethrough), hyperlinks, blockquotes. 
 
-    This function inputs the chunk of text and the index (as well as optional debugging)0
-    This function outputs the stored styke_requests and the cleaned up chunk
+    This function inputs the chunk of text and the index and whether the chunk is a paragraph or not (as well as optional debugging)
+    This function outputs the stored style_requests and the cleaned up chunk
     """
     style_requests = []
-    bolditalics_match = re.search(r"\*\*\*(.+?)\*\*\*", chunk)
-    bold_match = re.search(r"\*\*(.+?)\*\*", chunk)
-    italic_match = re.search(r"\_(.+?)\_", chunk)
-    strike_match = re.search(r"\~(.+?)\~", chunk)
-
+    
+    # Process bold and italic combined
+    bolditalics_match = re.search(r"\*\*\_(.+?)\_\*\*", chunk) or re.search(r"\_\*\*(.+?)\*\*\_", chunk)
     if bolditalics_match:
         text = bolditalics_match.group(1).strip()
-        style_requests.append(get_style_request(text, "bold", index, debug=debug))
-        style_requests.append(get_style_request(text, "italic", index, debug=debug))
-        chunk = re.sub(r"\*\*\*(.+?)\*\*\*", text, chunk)
+        start_idx = bolditalics_match.start() if paragraph_flag else 0
+        style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
+        style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
+        chunk = re.sub(r"\*\*\_(.+?)\_\*\*", text, chunk)
+        chunk = re.sub(r"\_\*\*(.+?)\*\*\_", text, chunk)
 
-    elif bold_match:
+    # Process bold
+    bold_match = re.search(r"\*\*(.+?)\*\*", chunk)
+    if bold_match:
         text = bold_match.group(1).strip()
-        style_requests.append(get_style_request(text, "bold", index, debug=debug))
+        start_idx = bold_match.start() if paragraph_flag else 0
+        style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
         chunk = re.sub(r"\*\*(.+?)\*\*", text, chunk)
 
-    elif italic_match:
+    # Recalculate matches and indices after each replacement
+    italic_match = re.search(r"\_(.+?)\_", chunk)
+    if italic_match:
         text = italic_match.group(1).strip()
-        style_requests.append(get_style_request(text, "italic", index, debug=debug))
+        start_idx = italic_match.start() if paragraph_flag else 0
+        style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
         chunk = re.sub(r"\_(.+?)\_", text, chunk)
 
+    # Process strikethrough
+    strike_match = re.search(r"\~(.+?)\~", chunk)
     if strike_match:
         text = strike_match.group(1).strip()
-        style_requests.append(get_style_request(text, "underline", index, debug=debug))
+        start_idx = strike_match.start() if paragraph_flag else 0 
+        style_requests.append(get_style_request(text, "strike", index + start_idx, debug=debug))
         chunk = re.sub(r"\~(.+?)\~", text, chunk)
+
+    # Process hyperlinks
+    hyperlink_match = re.search(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", chunk)
+    if hyperlink_match:
+        text = hyperlink_match.group(1).strip()  
+        url = hyperlink_match.group(2).strip()
+        start_idx = hyperlink_match.start() if paragraph_flag else 0
+        style_requests.append(get_hyperlink_request(text, url, index + start_idx, debug=debug))
+        chunk = re.sub(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", text, chunk)
 
     cleaned_chunk = chunk
     return style_requests, cleaned_chunk
@@ -414,6 +449,21 @@ def preprocess_numbered_lists(content):
     return "\n".join(clean_lines)
 
 
+def is_paragraph(chunk):
+    """
+    Checks if the chunk of text is an ordinary paragraph, meaning it doesn't match any special markdown syntax.
+    """
+    # Matches for different markdown syntax
+    if (
+        not re.match(r"^(#{1,6})\s+(.+)", chunk) and  # Not a header
+        not re.match(r"^-\s+(.+)", chunk) and         # Not a bullet point
+        not re.match(r"^\d+\.\s+(.+)", chunk) and     # Not a numbered list
+        not re.match(r"^\|.+\|", chunk) and           # Not a table row
+        not re.match(r"^[-*_]{3,}$", chunk)           # Not a horizontal line
+    ):
+        return True
+    return False
+
 def send_batch_update(docs_service, doc_id, requests, rate_limit=120):
     """
     This is a helper function to send all the requests attained to the docs_service build. 
@@ -442,22 +492,22 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
     content_markdown = preprocess_numbered_lists(content_markdown)
     chunks = re.split(r"(?<=\n)", content_markdown)
 
-    # Initializing variables, index = 1 and all_requests list
+    # Initializing variables, index = 1
     chunks = iter(chunks)
     index = 1
-    table_flag = False
-    all_requests = []
+    text_requests = []
+    style_requests = []
 
     # For each chunk detected: 
     for chunk in chunks:
-        # Initialize a chunk by stripping it and splitting into general requests and style_requests
+        # Initialize a chunk by stripping it and splitting into requests per chunk
         chunk = chunk.strip()
         requests = []
-        style_requests = []
         table_flag = False
+        paragraph_flag = is_paragraph(chunk)
 
         # CFirst preprocess any styles recognized in the chunks and store them into the style_requests
-        received_styling, cleaned_chunk = preprocess_styles(chunk, index, debug=debug)
+        received_styling, cleaned_chunk = preprocess_nested_styles(chunk, index, paragraph_flag, debug=debug)
         style_requests.extend(received_styling)
 
         # Matches detected 
@@ -466,8 +516,6 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         numbered_list_match = re.match(r"^\d+\.\s+(.+)", cleaned_chunk)
         table_match = re.match(r"^\|.+\|", cleaned_chunk)
         horizontal_line_match = re.match(r"^[-*_]{3,}$", cleaned_chunk)
-        blockquote_match = re.match(r"^(>+)\s*(.+)", cleaned_chunk)
-        hyperlink_match = re.match(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", cleaned_chunk)  
         
         # If the chunk has header markdown syntax add the request
         if header_match:
@@ -484,19 +532,7 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         elif numbered_list_match:
             text = re.sub(r"^\d+\.\s", "", cleaned_chunk).strip()
             requests.extend(get_ordered_list_request(text, index, debug=debug))
-
-        # If the chunk has blockquotes markdown syntax add the request
-        elif blockquote_match:
-            frequency = len(blockquote_match.group(1))  
-            text = blockquote_match.group(2).strip()  
-            requests.extend(get_blockquote_request(text, frequency, index, debug=debug))
         
-        # If the chunk has hyperlink markdown syntax add the request
-        elif hyperlink_match:
-            text = hyperlink_match.group(1).strip()  
-            url = hyperlink_match.group(2).strip()   
-            requests.extend(get_hyperlink_request(text, url, index, debug=debug))
-
         # If the chunk has horizontal line markdown syntax add the request
         elif horizontal_line_match:
             requests.extend(get_horizontal_line_request(index, debug=debug))
@@ -506,8 +542,8 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
             table_flag = True
 
             # If it's a table, first process everything already there in all_requests, then clear it
-            send_batch_update(docs_service, doc_id, all_requests)
-            all_requests.clear()
+            send_batch_update(docs_service, doc_id, text_requests)
+            text_requests.clear()
 
             # Split the table into a list of table lines
             table_lines = [chunk]
@@ -563,17 +599,16 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         
         #  Append the general requets into the all requests and then appropriately increment the index based on the request text
         for request in requests:
-            all_requests.append(request)
+            text_requests.append(request)
             # Table automatically updates index due to monitoring hence, no need to update index if it's a table
             if "insertText" in request and not table_flag:
                 index += len(request["insertText"]["text"])
 
-        # Append the style requests into the all requests
-        for style_request in style_requests:
-            all_requests.append(style_request)
-
-    # Send batch updates to the google doc
-    send_batch_update(docs_service, doc_id, all_requests)
+    # Send batch updates to insert the text into the google doc
+    send_batch_update(docs_service, doc_id, text_requests)
+    
+    # After inserting the text, send a separate batch update for style requests
+    send_batch_update(docs_service, doc_id, style_requests)
 
 
 def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, debug=False):

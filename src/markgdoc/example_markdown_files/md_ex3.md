@@ -1,7 +1,7 @@
-# Fitness Routine: Staying Active
+# **Fitness Routine: Staying Active**
 
-## Introduction
-Regular physical activity is essential for maintaining a healthy body and mind. This guide outlines a basic fitness routine suitable for beginners.
+## **Introduction**
+- **Regular physical activity** is essential for maintaining a healthy body and mind. This guide outlines a basic fitness routine suitable for beginners.
 
 ## Workout Plan
 
@@ -19,7 +19,8 @@ Regular physical activity is essential for maintaining a healthy body and mind. 
 - 20-30 minutes of moderate-intensity cardio (e.g., running, cycling)
 - [Google Link](https://www.google.com/)
 
-Hello this is another paragraph which referes to a link: [Google Link](https://www.google.com/)
+This is **another** link: [Google Link](https://www.google.com/)
+[Google Link](https://www.google.com/) This is **_another_** link right here
 
 ### Cool Down
 - 5-10 minutes of walking
