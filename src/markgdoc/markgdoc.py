@@ -342,59 +342,91 @@ def create_empty_google_doc(document_title, credentials_file, scopes):
 
 def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     """
-    This is a helper function which deals with nested markdown syntax. Since you can have multiple markdown syntax in a chunk of text, 
-    we first preprocess the ones that don't rely on text insertion such as styling (bold, italics, strikethrough), hyperlinks, blockquotes. 
+    This is a helper function that deals with nested markdown syntax. 
+    Since you can have multiple markdown syntax in a chunk of text, 
+    we first preprocess the ones that don't rely on text insertion such as 
+    styling (bold, italics, strikethrough), hyperlinks, blockquotes. 
 
-    This function inputs the chunk of text and the index and whether the chunk is a paragraph or not (as well as optional debugging)
-    This function outputs the stored style_requests and the cleaned up chunk
+    This function inputs the chunk of text, the index, and whether the chunk 
+    is a paragraph or not (as well as optional debugging).
+    This function outputs the stored style_requests and the cleaned-up chunk.
     """
     style_requests = []
+ 
+    # Detect all styles and hyperlinks
+    matches = []
     
-    # Process bold and italic combined
     bolditalics_match = re.search(r"\*\*\_(.+?)\_\*\*", chunk) or re.search(r"\_\*\*(.+?)\*\*\_", chunk)
-    if bolditalics_match:
-        text = bolditalics_match.group(1).strip()
-        start_idx = bolditalics_match.start() if paragraph_flag else 0
-        style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
-        style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
-        chunk = re.sub(r"\*\*\_(.+?)\_\*\*", text, chunk)
-        chunk = re.sub(r"\_\*\*(.+?)\*\*\_", text, chunk)
-
-    # Process bold
     bold_match = re.search(r"\*\*(.+?)\*\*", chunk)
-    if bold_match:
-        text = bold_match.group(1).strip()
-        start_idx = bold_match.start() if paragraph_flag else 0
-        style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
-        chunk = re.sub(r"\*\*(.+?)\*\*", text, chunk)
-
-    # Recalculate matches and indices after each replacement
     italic_match = re.search(r"\_(.+?)\_", chunk)
-    if italic_match:
-        text = italic_match.group(1).strip()
-        start_idx = italic_match.start() if paragraph_flag else 0
-        style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
-        chunk = re.sub(r"\_(.+?)\_", text, chunk)
-
-    # Process strikethrough
     strike_match = re.search(r"\~(.+?)\~", chunk)
-    if strike_match:
-        text = strike_match.group(1).strip()
-        start_idx = strike_match.start() if paragraph_flag else 0 
-        style_requests.append(get_style_request(text, "strike", index + start_idx, debug=debug))
-        chunk = re.sub(r"\~(.+?)\~", text, chunk)
-
-    # Process hyperlinks
     hyperlink_match = re.search(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", chunk)
+
+    if bolditalics_match:
+        matches.append(("bolditalics", bolditalics_match))
+
+    elif bold_match:
+        matches.append(("bold", bold_match))
+    
+    elif italic_match:
+        matches.append(("italic", italic_match))
+    
+    if strike_match:
+        matches.append(("strike", strike_match))
+    
     if hyperlink_match:
-        text = hyperlink_match.group(1).strip()  
-        url = hyperlink_match.group(2).strip()
-        start_idx = hyperlink_match.start() if paragraph_flag else 0
-        style_requests.append(get_hyperlink_request(text, url, index + start_idx, debug=debug))
-        chunk = re.sub(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", text, chunk)
+        matches.append(("hyperlink", hyperlink_match))
+
+    # Sort matches by their starting index
+    matches.sort(key=lambda x: x[1].start())
+
+    # Offset to track the difference between original and modified chunk
+    offset = 0
+
+    # Process matches in order
+    for match_type, match in matches:
+        original_start_idx = match.start() + offset
+        original_end_idx = match.end() + offset
+
+        # Update the start index based on the original chunk
+        if match_type == "bolditalics":
+            text = match.group(1).strip()
+            start_idx = original_start_idx if paragraph_flag else 0
+            style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
+            style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
+            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+        
+        elif match_type == "bold":
+            text = match.group(1).strip()
+            start_idx = original_start_idx if paragraph_flag else 0
+            style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
+            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+        
+        elif match_type == "italic":
+            text = match.group(1).strip()
+            start_idx = original_start_idx if paragraph_flag else 0
+            style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
+            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+        
+        elif match_type == "strike":
+            text = match.group(1).strip()
+            start_idx = original_start_idx if paragraph_flag else 0 
+            style_requests.append(get_style_request(text, "strike", index + start_idx, debug=debug))
+            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+        
+        elif match_type == "hyperlink":
+            text = match.group(1).strip()  
+            url = match.group(2).strip()
+            start_idx = original_start_idx if paragraph_flag else 0
+            style_requests.append(get_hyperlink_request(text, url, index + start_idx, debug=debug))
+            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+
+        # Adjust the offset based on the length difference between the original match and the new text
+        offset -= (len(match.group(0)) - len(text))
 
     cleaned_chunk = chunk
     return style_requests, cleaned_chunk
+
 
 
 def preprocess_markdown_table(markdown_table):
