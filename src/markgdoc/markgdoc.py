@@ -118,8 +118,11 @@ def get_blockquote_request(text, frequency, index, debug=False):
         {
             "updateParagraphStyle": {
                 "range": {"startIndex": index, "endIndex": index + len(text) + 1},
-                "paragraphStyle": {"indentStart": {"magnitude": indent_amount, "unit": "PT"}},
-                "fields": "indentStart",
+                "paragraphStyle": {
+                    "indentStart": {"magnitude": indent_amount, "unit": "PT"},
+                    "alignment": "START",  
+                },
+                "fields": "indentStart,alignment",
             }
         },
     )
@@ -172,7 +175,6 @@ def get_hyperlink_request(text, url, index, debug=False):
         print(f"Applying Hyperlink Request:\n- Text: {text}\n- URL: {url}\n- Index: {index} - {index + len(text) + 1}\n")
 
     hyperlink_request = {
-        # {"insertText": {"location": {"index": index}, "text": text}},
             "updateTextStyle": {
                 "range": {"startIndex": index, "endIndex": index + len(text)},
                 "textStyle": {"link": {"url": url}},
@@ -276,7 +278,7 @@ def get_table_content_request(table_data, index, debug=False):
             if(debug): 
                 print("Start Index: ", index)
 
-            received_styles, cleaned_cell = preprocess_nested_styles(cell, index)
+            received_styles, cleaned_cell = preprocess_nested_styles(cell, index, False)
             style_requests.extend(received_styles)
 
             if(debug): 
@@ -352,8 +354,8 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     This function outputs the stored style_requests and the cleaned-up chunk.
     """
     style_requests = []
- 
-    # Detect all styles and hyperlinks
+
+    # Now, detect all other styles and hyperlinks in the main chunk
     matches = []
     
     bolditalics_match = re.search(r"\*\*\_(.+?)\_\*\*", chunk) or re.search(r"\_\*\*(.+?)\*\*\_", chunk)
@@ -388,7 +390,7 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
         original_start_idx = match.start() + offset
         original_end_idx = match.end() + offset
 
-        # Update the start index based on the original chunk
+        # Update the start index based on the modified chunk
         if match_type == "bolditalics":
             text = match.group(1).strip()
             start_idx = original_start_idx if paragraph_flag else 0
@@ -427,6 +429,27 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     cleaned_chunk = chunk
     return style_requests, cleaned_chunk
 
+
+def preprocess_blockquotes(chunk, index, debug=False): 
+    # Create a temporary clean chunk without any styling syntax for blockquote processing
+    temp_chunk = re.sub(r"\*\*\_(.+?)\_\*\*|\_\*\*(.+?)\*\*\_|"  
+                         r"\*\*(.+?)\*\*|"                        
+                         r"\_(.+?)\_|"                            
+                         r"\~(.+?)\~|"                            
+                         r"\[(.+?)\]\((http[s]?:\/\/.+?)\)",       
+                         r"\1\2\3\4\5\6", chunk)  # Extract only the text part for clean_chunk
+
+    # First, process the blockquote to remove the '>' symbols and apply the indentation
+    blockquote_match = re.match(r"^(>+)\s*(.+)", temp_chunk)
+    if blockquote_match:
+        frequency = len(blockquote_match.group(1)) 
+        text = blockquote_match.group(2).strip()
+        start_idx = 0  
+        blockquote_request = get_blockquote_request(text, frequency, index + start_idx, debug=debug)
+        chunk = re.sub(r"^>+\s*", "", chunk)  # Remove blockquote symbols from the main chunk
+
+    cleaned_chunk = chunk
+    return blockquote_request, cleaned_chunk
 
 
 def preprocess_markdown_table(markdown_table):
@@ -538,7 +561,15 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         table_flag = False
         paragraph_flag = is_paragraph(chunk)
 
-        # CFirst preprocess any styles recognized in the chunks and store them into the style_requests
+        # First process any blockquotes that might appear: 
+        blockquote_match = re.match(r"^(>+)\s*(.+)", chunk)
+        if blockquote_match: 
+            blocckquote_request, block_quote_cleaned_chunk = preprocess_blockquotes(chunk, index, debug=debug)
+            requests.extend(blocckquote_request)
+            chunk = block_quote_cleaned_chunk
+
+
+        # Then we preprocess any styles recognized in the chunks and store them into the style_requests
         received_styling, cleaned_chunk = preprocess_nested_styles(chunk, index, paragraph_flag, debug=debug)
         style_requests.extend(received_styling)
 
@@ -626,7 +657,7 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
             index += 2 # Update index to account for paragraph since it's not being accounted for due to table_flag
 
         # If the chunk has none of those, then it is likely a paragraph
-        else:
+        elif not blockquote_match:
             requests.append(get_paragraph_request(cleaned_chunk, index, debug=debug))
         
         #  Append the general requets into the all requests and then appropriately increment the index based on the request text

@@ -87,16 +87,20 @@ def main(debug=False):
             print(f"We currently have {MARKDOWN_FILES_COUNT} markdown file examples in our system!")
             md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
-            while(int(md_example_fileno) > MARKDOWN_FILES_COUNT and int(md_example_fileno) <= 0): 
+            while(int(md_example_fileno) > MARKDOWN_FILES_COUNT or int(md_example_fileno) <= 0): 
                 print("Incorrect Input!")
                 md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
             md_example_file = f"md_ex{md_example_fileno}"
             md_inputfile = os.path.join(os.path.dirname(__file__), 'example_markdown_files', f"{md_example_file}.md")
 
-            # Read the content of the markdown file
-            with open(md_inputfile, 'r') as file:
-                md_content = file.read()
+            try: 
+                # Read the content of the markdown file
+                with open(md_inputfile, 'r') as file:
+                    md_content = file.read()
+            except FileNotFoundError as e: 
+                print(f"File could not be opened: {e}")
+                exit(-1)
 
             document_title = "Example Markdown File"
             print("Converting your Markdown to a Google Doc!")
