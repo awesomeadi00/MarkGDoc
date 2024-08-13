@@ -3,15 +3,15 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "googledocs_parser"
-description = "A package where users can receive pick up lines, rate pickup lines and add pickup lines"
-version = "1.1.0"
+name = "markgdoc"
+description = "A package where users can convert markdown syntax into their very own google docs file"
+version = "0.0.1"
 authors = [
   { name="Aditya Pandhare", email="adityapandhare44@gmail.com" }
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-keywords = ["python", "package", "build", "pyrizz", "pickup-line"]
+keywords = ["python", "package", "markdown", "google-docs", "requests"]
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -24,12 +24,12 @@ classifiers = [
 dev = ["pytest"]
 
 [project.urls]
-"Homepage" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia"
-"Repository" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia.git"
-"Bug Tracker" = "https://github.com/software-students-fall2023/3-python-package-exercise-experientia/issues"
+"Homepage" = "https://github.com/awesomeadi00/MarkGDoc"
+"Repository" = "https://github.com/awesomeadi00/MarkGDoc.git"
+"Bug Tracker" = "https://github.com/awesomeadi00/MarkGDoc/issues"
 
 [project.scripts]
-pyrizz = "pyrizz.__main__:main"
+markgdoc = "markgdoc.__main__:main"
 
 [tool.setuptools.package-data]
-"pyrizz" = ["data/*"]
+"markgdoc" = ["data/*"]
