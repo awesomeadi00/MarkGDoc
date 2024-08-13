@@ -1,3 +1,5 @@
+![Workflow Status](https://github.com/MarkGDoc/actions/workflows/ci-cd.yml/badge.svg)
+
 # MarkGDoc: Converting Markdown to Google Docs
 
 [MarkGDoc GitHub Link](https://github.com/awesomeadi00/MarkGDoc)
