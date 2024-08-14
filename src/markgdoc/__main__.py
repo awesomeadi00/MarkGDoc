@@ -4,7 +4,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from . import markgdoc
 
-# Initialization for this global variable constant. This is the path to your credentials.json file 
+# Initialization for this global variable constant. This is the path to your credentials.json file, you can edit it to whatever path you want 
 SERVICE_ACCOUNT_FILE = "credentials.json"
 SCOPES = [
     "https://www.googleapis.com/auth/documents",

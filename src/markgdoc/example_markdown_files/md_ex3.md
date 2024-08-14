@@ -10,21 +10,19 @@
 - Stretching major muscle groups
 
 ### Strength Training
-> **Push-Ups:** 3 sets of 10-15 reps
->> **Squats:** 3 sets of 15-20 reps
->>> **Lunges:** 3 sets of 10-15 reps per leg
->>>> **Planks:** 3 sets of 30-60 seconds
+- **Push-Ups:** 3 sets of 10-15 reps
+-  **Squats:** 3 sets of 15-20 reps
+-  **Lunges:** 3 sets of 10-15 reps per leg
+-  **Planks:** 3 sets of 30-60 seconds
 
 ### Cardio
 - 20-30 minutes of moderate-intensity cardio (e.g., running, cycling)
-- [Google Link](https://www.google.com/)
-
-This is **another** link: [Google Link](https://www.google.com/)
-[Google Link](https://www.google.com/) This is **_another_** link right here
 
 ### Cool Down
 - 5-10 minutes of walking
 - Gentle stretching to relax muscles
 
-## Conclusion
-Staying active is a key component of a healthy lifestyle. This routine is a great starting point for those looking to improve their fitness. Remember to stay hydrated and listen to your body.
+## Google Links - For more information
+- [Google Link](https://www.google.com/)
+This is **another** link: [Google Link](https://www.google.com/)
+[Google Link](https://www.google.com/) This is **_another_** link right here

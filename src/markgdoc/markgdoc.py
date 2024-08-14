@@ -5,28 +5,8 @@ from googleapiclient.discovery import build
 
 # Markdown Syntax Notes: https://www.markdownguide.org/basic-syntax/
 
-# Path to the service account key file
-SERVICE_ACCOUNT_FILE = "credentials.json"
-SCOPES = [
-    "https://www.googleapis.com/auth/documents",
-    "https://www.googleapis.com/auth/drive",
-]
-
-
-# To do list:\
-# - Issue with nested syntax: specifically any further index from when a hyperlink request was made in the same chunk
-"""
-I think the reason for this is because in the several if statements, since hyperlink  if statement is at the bottom, that one gets processed last, 
-even though it is first in that chunk. Since the bold_italics if statement is before that, even though in the chunk that is much later, 
-that gets processed first and this is the chunk which was not updated. 
-
-Hence, this is an issue. Basically what I need to ensure here is that whichever one is detected first, you execute that request first. 
-Because sequentially the chunk would update appropriately and then further stylings can be updated along the way of the chunk
-"""
-
-
+# To do list:
 # - Block Quotes (>) Syntax basically is indentations so need to add this
-# - Add Pytests
 # - Setup TestPyPi Env and continue testing
 # - Setup main PyPi env and continue testing 
 
@@ -97,36 +77,6 @@ def get_horizontal_line_request(index, debug=False):
             "fields": "borderBottom",
         }
     }
-
-
-def get_blockquote_request(text, frequency, index, debug=False):
-    """
-    This returns a Google Doc API Request for applying an indentation on text at a particular index in the GDoc.
-    
-    - Input: Text, Frequency of indentation (how many times), Index to place in the GDoc
-    - Output: GDoc Request for Indenting the text
-    """
-
-    if debug:
-        print(f"Applying Blockquote Request:\n- Frequency: {frequency}\n- Text: {text}\n- Index: {index} - {index + len(text) + 1}\n")
-
-    # The amount to indent is determined by the frequency of blockquotes
-    indent_amount = frequency * 18  # Google Docs API uses points (18 points = 1 indentation level)
-
-    return (
-        {"insertText": {"location": {"index": index}, "text": text + "\n"}},
-        {
-            "updateParagraphStyle": {
-                "range": {"startIndex": index, "endIndex": index + len(text) + 1},
-                "paragraphStyle": {
-                    "indentStart": {"magnitude": indent_amount, "unit": "PT"},
-                    "alignment": "START",  
-                },
-                "fields": "indentStart,alignment",
-            }
-        },
-    )
-
 
 
 def get_style_request(text, style, index, debug=False):
@@ -430,28 +380,6 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     return style_requests, cleaned_chunk
 
 
-def preprocess_blockquotes(chunk, index, debug=False): 
-    # Create a temporary clean chunk without any styling syntax for blockquote processing
-    temp_chunk = re.sub(r"\*\*\_(.+?)\_\*\*|\_\*\*(.+?)\*\*\_|"  
-                         r"\*\*(.+?)\*\*|"                        
-                         r"\_(.+?)\_|"                            
-                         r"\~(.+?)\~|"                            
-                         r"\[(.+?)\]\((http[s]?:\/\/.+?)\)",       
-                         r"\1\2\3\4\5\6", chunk)  # Extract only the text part for clean_chunk
-
-    # First, process the blockquote to remove the '>' symbols and apply the indentation
-    blockquote_match = re.match(r"^(>+)\s*(.+)", temp_chunk)
-    if blockquote_match:
-        frequency = len(blockquote_match.group(1)) 
-        text = blockquote_match.group(2).strip()
-        start_idx = 0  
-        blockquote_request = get_blockquote_request(text, frequency, index + start_idx, debug=debug)
-        chunk = re.sub(r"^>+\s*", "", chunk)  # Remove blockquote symbols from the main chunk
-
-    cleaned_chunk = chunk
-    return blockquote_request, cleaned_chunk
-
-
 def preprocess_markdown_table(markdown_table):
     """
     This is a helper function which converts a markdown table string input into a 2D vector list
@@ -561,14 +489,6 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         table_flag = False
         paragraph_flag = is_paragraph(chunk)
 
-        # First process any blockquotes that might appear: 
-        blockquote_match = re.match(r"^(>+)\s*(.+)", chunk)
-        if blockquote_match: 
-            blocckquote_request, block_quote_cleaned_chunk = preprocess_blockquotes(chunk, index, debug=debug)
-            requests.extend(blocckquote_request)
-            chunk = block_quote_cleaned_chunk
-
-
         # Then we preprocess any styles recognized in the chunks and store them into the style_requests
         received_styling, cleaned_chunk = preprocess_nested_styles(chunk, index, paragraph_flag, debug=debug)
         style_requests.extend(received_styling)
@@ -657,7 +577,7 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
             index += 2 # Update index to account for paragraph since it's not being accounted for due to table_flag
 
         # If the chunk has none of those, then it is likely a paragraph
-        elif not blockquote_match:
+        else:
             requests.append(get_paragraph_request(cleaned_chunk, index, debug=debug))
         
         #  Append the general requets into the all requests and then appropriately increment the index based on the request text
