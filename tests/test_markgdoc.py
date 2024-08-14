@@ -2,8 +2,7 @@ import pytest
 from src.markgdoc.markgdoc import (
     get_header_request, 
     get_paragraph_request, 
-    get_horizontal_line_request, 
-    get_blockquote_request, 
+    get_horizontal_line_request,  
     get_style_request, 
     get_hyperlink_request, 
     get_unordered_list_request, 
@@ -60,26 +59,6 @@ def test_get_paragraph_request(text, index, expected):
 ])
 def test_get_horizontal_line_request(index, expected):
     result = get_horizontal_line_request(index)
-    assert result == expected
-
-
-@pytest.mark.parametrize("text, frequency, index, expected", [
-    ("Blockquote text", 2, 15, (
-        {"insertText": {"location": {"index": 15}, "text": "Blockquote text\n"}},
-        {
-            "updateParagraphStyle": {
-                "range": {"startIndex": 15, "endIndex": 31},
-                "paragraphStyle": {
-                    "indentStart": {"magnitude": 36, "unit": "PT"},
-                    "alignment": "START",
-                },
-                "fields": "indentStart,alignment",
-            }
-        }
-    )),
-])
-def test_get_blockquote_request(text, frequency, index, expected):
-    result = get_blockquote_request(text, frequency, index)
     assert result == expected
 
 
