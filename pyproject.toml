@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "markgdoc"
 description = "A package where users can convert markdown syntax into their very own google docs file"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
   { name="Aditya Pandhare", email="adityapandhare44@gmail.com" }
 ]
@@ -37,5 +37,10 @@ dev = ["pytest"]
 [project.scripts]
 markgdoc = "markgdoc.__main__:main"
 
+[tool.setuptools]
+packages = ["markgdoc"]
+package_dir = {"": "src"}
+include_package_data = true
+
 [tool.setuptools.package-data]
-"markgdoc" = ["data/*"]
+"markgdoc" = ["example_markdown_files/*.md"]

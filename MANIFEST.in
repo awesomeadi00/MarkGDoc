@@ -1,1 +1,5 @@
 include gcp_setup/*
+include src/markgdoc/example_markdown_files/*
+recursive-include markgdoc/example_markdown_files *.md
+include LICENSE
+include README.md
