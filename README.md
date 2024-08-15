@@ -1,9 +1,10 @@
 ![Workflow Status](https://github.com/awesomeadi00/MarkGDoc/actions/workflows/ci-cd.yml/badge.svg)
-
+[![PyPI Version](https://badge.fury.io/py/markgdoc.svg)](https://badge.fury.io/py/markgdoc)
 # MarkGDoc: Converting Markdown to Google Docs
 
 [MarkGDoc GitHub Link](https://github.com/awesomeadi00/MarkGDoc)
 
+[PyPi Package Link](https://pypi.org/project/markgdoc/)
 ```
 pip install markgdoc
 ```
