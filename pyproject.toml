@@ -37,10 +37,5 @@ dev = ["pytest"]
 [project.scripts]
 markgdoc = "markgdoc.__main__:main"
 
-[tool.setuptools]
-packages = ["markgdoc"]
-package_dir = {"": "src"}
-include_package_data = true
-
 [tool.setuptools.package-data]
 "markgdoc" = ["example_markdown_files/*.md"]
