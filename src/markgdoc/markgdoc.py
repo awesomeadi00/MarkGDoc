@@ -5,11 +5,6 @@ from googleapiclient.discovery import build
 
 # Markdown Syntax Notes: https://www.markdownguide.org/basic-syntax/
 
-# To do list:
-# - Block Quotes (>) Syntax basically is indentations so need to add this
-# - Setup TestPyPi Env and continue testing
-# - Setup main PyPi env and continue testing 
-
 # Google Docs API Request Functions ===================================================================================
 # Disclaimer! Every Request has an optional 'debug' parameter. By default this is False, however if switched on as True
 # You will be able to see the request made, the content, extra parameters and the index the content is being inserted at 
