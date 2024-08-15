@@ -16,6 +16,8 @@ In this Python Package, you can now convert your markdown files into your very o
 
 
 # Key Features
+
+###  convert_to_google_docs(): 
 The main function to convert your markdown content into your very own google docs file is the following: 
 
 ```
@@ -24,17 +26,39 @@ google_docs_url =  convert_to_google_docs(content_markdown, document_title, docs
 
 You need to ensure to pass: 
 - Your markdown content as a single string
+
 - The title you would like to name your document as a string
+
 - Your google docs build service
+
 - The path to your credentials.json file 
+
 - Scopes to define the access for the application. 
     - You can declare this constant as a default but feel free to add more: 
+
     ```
     SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive",
     ]
     ```
+
+This will output your very own **Google Docs URL** which you can open on any browser of your choice. 
+
+###  create_empty_google_doc(): 
+You can even use the `create_empty_google_doc` function if required to help you quickly create an empty google doc: 
+```
+doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scopes)
+```
+
+You need to ensure to pass: 
+- The title you would like to name your document as a string
+
+- The path to your credentials.json file 
+
+- Scopes to define the access for the application. 
+
+This will output the google docs id as well as the overall complete google docs URL as well. 
 
 ## Specific Google Doc Request Functions:  
 

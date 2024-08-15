@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "markgdoc"
 description = "A package where users can convert markdown syntax into their very own google docs file"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Aditya Pandhare", email="adityapandhare44@gmail.com" }
 ]
