@@ -145,12 +145,12 @@ If you don't have any of these setup, checkout our documentation on how to setup
 Once properly setup, you can run the command: 
 
 ```
-python -m src.markgdoc
+python -m markgdoc
 ```
 
 Additionally you can also run the program as the following for Debugging Print Statements of all the requests to show in your terminal
 ```
-python -m src.markgdoc --debug
+python -m markgdoc --debug
 ```
 
 

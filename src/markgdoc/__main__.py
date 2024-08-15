@@ -27,8 +27,8 @@ def main(debug=False):
         print("------ DEBUG MODE ON ------\n")
 
     print("First, let's set you up!")
-    # credentials_path_input = input("Please provide the path for where your credentials.json file is: ")
-    credentials_path_input = "./credentials.json" # Streamlining it for now (will remove later)
+    credentials_path_input = input("Please provide the path for where your credentials.json file is: ")
+
     # Check if the provided path is valid and accessible
     if os.path.isfile(credentials_path_input):
         global SERVICE_ACCOUNT_FILE
