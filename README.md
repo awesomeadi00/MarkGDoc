@@ -47,7 +47,7 @@ You need to ensure to pass:
 
 To learn how to create your own google docs build service and how to setup your own credentials file from Google Cloud Platform, please checkout our tutorial here: 
 
-[Guide on How to Setup Your Google Cloud Console Project](./gcp_setup/gcp_setup_guide.md)
+[Guide on How to Setup Your Google Cloud Console Project](https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md)
 
 --- 
 
@@ -170,7 +170,7 @@ Before you go ahead and run your this program, please make sure that:
 
 The above steps are required for you to run this main as these are the steps needed to connect to the API and create a Google Docs through Python. 
 
-If you don't have any of these setup, checkout our documentation on how to setup a a Google Cloud Console Project: [Guide on How to Setup Your Google Cloud Console Project](./gcp_setup/gcp_setup_guide.md)
+If you don't have any of these setup, checkout our documentation on how to setup a a Google Cloud Console Project: [Guide on How to Setup Your Google Cloud Console Project](https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md)
 
 Once properly setup, you can run the command: 
 
