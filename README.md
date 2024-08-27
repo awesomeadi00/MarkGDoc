@@ -16,25 +16,26 @@ As a programmer and dealing with Google Docs API requests, it can seem frustrati
 In this Python Package, you can now convert your markdown files into your very own Google Docs file with ease! We have streamlined every Markdown Syntax to match a properly formatted Google Docs API Request, saving you the nitty gritty time of worrying on how to structure a request, ensuring everything is now automated!
 
 
-# Key Features
+# Key Functions
 
 ###  convert_to_google_docs(): 
-The main function to convert your markdown content into your very own google docs file is the following: 
+This is the main function to convert your markdown content into your very own google docs file. This will output your very own **Google Docs URL** to your google docs file: 
 
 ```
 google_docs_url =  convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, debug=False)
 ```
 
 You need to ensure to pass: 
-- Your markdown content as a single string
+- `content_markdown` : A string of your markdown content
 
-- The title you would like to name your document as a string
+- `document_title` : A string of the title of your google docs
 
-- Your google docs build service
+- `docs_service` : Your google docs build service
 
-- The path to your credentials.json file 
+- `credentials_file` : The path to your credentials.json file 
 
-- Scopes to define the access for the application. 
+- `scopes` : Scopes to define the access for the application. 
+    
     - You can declare this constant as a default but feel free to add more: 
 
     ```
@@ -44,7 +45,11 @@ You need to ensure to pass:
     ]
     ```
 
-This will output your very own **Google Docs URL** which you can open on any browser of your choice. 
+To learn how to create your own google docs build service and how to setup your own credentials file from Google Cloud Platform, please checkout our tutorial here: 
+
+[Guide on How to Setup Your Google Cloud Console Project](./gcp_setup/gcp_setup_guide.md)
+
+--- 
 
 ###  create_empty_google_doc(): 
 You can even use the `create_empty_google_doc` function if required to help you quickly create an empty google doc: 
@@ -53,17 +58,17 @@ doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scop
 ```
 
 You need to ensure to pass: 
-- The title you would like to name your document as a string
+- `document_title` : A string of the title of your google docs
 
-- The path to your credentials.json file 
+- `credentials_file` : The path to your credentials.json file 
 
-- Scopes to define the access for the application. 
+- `scopes` : Scopes to define the access for the application.
 
-This will output the google docs id as well as the overall complete google docs URL as well. 
+This will output the google docs id as well as the overall complete google docs URL. 
 
 ## Specific Google Doc Request Functions:  
 
-In our package we have created dissolved your long and complex google docs requests into single line functions catered for every common markdown syntax used: 
+In our package we have dissolved your long and complex google docs requests into single line functions catered for every common markdown syntax used: 
 
 ### get_header_request(text, level, index, debug=False)
 

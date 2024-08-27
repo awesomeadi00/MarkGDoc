@@ -51,4 +51,15 @@ For more information about Google Docs API Requests and how to make them yoursel
 ## Creating a Google Doc using the GCP API
 
 In order to create a Google Doc using the API, take a look at this python file example as to how to set it up! 
+
+In here it includes: 
+
+- How to authenticate your google drive api 
+
+- How to create an empty google docs file
+
+- How to set permissions on your google docs file
+
+- How to set up your google docs build service 
+
 > [Google Doc Creation Python File](./gcp_example.py)
