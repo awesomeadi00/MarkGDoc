@@ -1,5 +1,6 @@
 import re
 import threading
+import unicodedata
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
@@ -287,6 +288,24 @@ def create_empty_google_doc(document_title, credentials_file, scopes):
     return doc_id, doc_url
 
 
+def remove_emojis(text):
+    """
+    Remove emojis from text to prevent Google Docs formatting issues.
+    """
+    # Pattern to match emoji characters
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F680-\U0001F6FF"  # transport & map
+        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        "\U00002702-\U000027B0"
+        "\U000024C2-\U0001F251"
+        "]+", flags=re.UNICODE
+    )
+    return emoji_pattern.sub(r'', text)
+
+
 def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     """
     This is a helper function that deals with nested markdown syntax. 
@@ -298,25 +317,71 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
     is a paragraph or not (as well as optional debugging).
     This function outputs the stored style_requests and the cleaned-up chunk.
     """
+    # Remove emojis first to prevent formatting issues
+    chunk = remove_emojis(chunk)
+    
     style_requests = []
 
     # Now, detect all other styles and hyperlinks in the main chunk
     matches = []
     
-    bolditalics_match = re.search(r"\*\*\_(.+?)\_\*\*", chunk) or re.search(r"\_\*\*(.+?)\*\*\_", chunk)
-    bold_match = re.search(r"\*\*(.+?)\*\*", chunk)
-    italic_match = re.search(r"\_(.+?)\_", chunk)
+    # Enhanced patterns to support multiple markdown syntax styles
+    # Bold and italic combinations - handle both asterisk and underscore variants
+    bolditalics_patterns = [
+        r"\*\*\*(.+?)\*\*\*",  # ***text***
+        r"\*\*\_(.+?)\_\*\*",  # **_text_**
+        r"\_\*\*(.+?)\*\*\_",  # _**text**_
+        r"\_\_\_(.+?)\_\_\_",  # ___text___
+    ]
+    
+    # Bold patterns - asterisks and underscores
+    bold_patterns = [
+        r"\*\*(.+?)\*\*",  # **text**
+        r"\_\_(.+?)\_\_",  # __text__
+    ]
+    
+    # Italic patterns - single asterisks and underscores
+    italic_patterns = [
+        r"\*(.+?)\*",  # *text*
+        r"\_(.+?)\_",  # _text_
+    ]
+    
     strike_match = re.search(r"\~(.+?)\~", chunk)
     hyperlink_match = re.search(r"\[(.+?)\]\((http[s]?:\/\/.+?)\)", chunk)
 
+    # Check for bold-italic combinations first
+    bolditalics_match = None
+    for pattern in bolditalics_patterns:
+        match = re.search(pattern, chunk)
+        if match:
+            bolditalics_match = match
+            break
+    
     if bolditalics_match:
         matches.append(("bolditalics", bolditalics_match))
-
-    elif bold_match:
-        matches.append(("bold", bold_match))
-    
-    elif italic_match:
-        matches.append(("italic", italic_match))
+    else:
+        # Check for bold patterns
+        bold_match = None
+        for pattern in bold_patterns:
+            match = re.search(pattern, chunk)
+            if match:
+                bold_match = match
+                break
+        
+        if bold_match:
+            matches.append(("bold", bold_match))
+        
+        # Check for italic patterns (only if no bold match to avoid conflicts)
+        else:
+            italic_match = None
+            for pattern in italic_patterns:
+                match = re.search(pattern, chunk)
+                if match:
+                    italic_match = match
+                    break
+            
+            if italic_match:
+                matches.append(("italic", italic_match))
     
     if strike_match:
         matches.append(("strike", strike_match))
@@ -332,41 +397,45 @@ def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
 
     # Process matches in order
     for match_type, match in matches:
-        original_start_idx = match.start() + offset
-        original_end_idx = match.end() + offset
+        original_start_idx = match.start()
+        original_end_idx = match.end()
+        
+        # Calculate the actual position in the current chunk after previous modifications
+        adjusted_start_idx = original_start_idx + offset
+        adjusted_end_idx = original_end_idx + offset
 
         # Update the start index based on the modified chunk
         if match_type == "bolditalics":
             text = match.group(1).strip()
-            start_idx = original_start_idx if paragraph_flag else 0
-            style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
-            style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
-            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+            start_idx = adjusted_start_idx if paragraph_flag else 0
+            style_requests.extend(get_style_request(text, "bold", index + start_idx, debug=debug))
+            style_requests.extend(get_style_request(text, "italic", index + start_idx, debug=debug))
+            chunk = chunk[:adjusted_start_idx] + text + chunk[adjusted_end_idx:]
         
         elif match_type == "bold":
             text = match.group(1).strip()
-            start_idx = original_start_idx if paragraph_flag else 0
-            style_requests.append(get_style_request(text, "bold", index + start_idx, debug=debug))
-            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+            start_idx = adjusted_start_idx if paragraph_flag else 0
+            style_requests.extend(get_style_request(text, "bold", index + start_idx, debug=debug))
+            chunk = chunk[:adjusted_start_idx] + text + chunk[adjusted_end_idx:]
         
         elif match_type == "italic":
             text = match.group(1).strip()
-            start_idx = original_start_idx if paragraph_flag else 0
-            style_requests.append(get_style_request(text, "italic", index + start_idx, debug=debug))
-            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+            start_idx = adjusted_start_idx if paragraph_flag else 0
+            style_requests.extend(get_style_request(text, "italic", index + start_idx, debug=debug))
+            chunk = chunk[:adjusted_start_idx] + text + chunk[adjusted_end_idx:]
         
         elif match_type == "strike":
             text = match.group(1).strip()
-            start_idx = original_start_idx if paragraph_flag else 0 
-            style_requests.append(get_style_request(text, "strike", index + start_idx, debug=debug))
-            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+            start_idx = adjusted_start_idx if paragraph_flag else 0 
+            style_requests.extend(get_style_request(text, "strike", index + start_idx, debug=debug))
+            chunk = chunk[:adjusted_start_idx] + text + chunk[adjusted_end_idx:]
         
         elif match_type == "hyperlink":
             text = match.group(1).strip()  
             url = match.group(2).strip()
-            start_idx = original_start_idx if paragraph_flag else 0
-            style_requests.append(get_hyperlink_request(text, url, index + start_idx, debug=debug))
-            chunk = chunk[:original_start_idx] + text + chunk[original_end_idx:]
+            start_idx = adjusted_start_idx if paragraph_flag else 0
+            style_requests.extend(get_hyperlink_request(text, url, index + start_idx, debug=debug))
+            chunk = chunk[:adjusted_start_idx] + text + chunk[adjusted_end_idx:]
 
         # Adjust the offset based on the length difference between the original match and the new text
         offset -= (len(match.group(0)) - len(text))
@@ -427,14 +496,38 @@ def preprocess_numbered_lists(content):
     return "\n".join(clean_lines)
 
 
+def is_bullet_char(char):
+    """
+    Check if a character is a valid bullet point character.
+    Supports various dash and bullet Unicode characters.
+    """
+    bullet_chars = {
+        '-',  # hyphen-minus (U+002D)
+        '–',  # en dash (U+2013) 
+        '—',  # em dash (U+2014)
+        '‐',  # hyphen (U+2010)
+        '‑',  # non-breaking hyphen (U+2011)
+        '•',  # bullet (U+2022)
+        '◦',  # white bullet (U+25E6)
+        '▪',  # black small square (U+25AA)
+        '▫',  # white small square (U+25AB)
+        '‣',  # triangular bullet (U+2023)
+        '⁃',  # hyphen bullet (U+2043)
+    }
+    return char in bullet_chars
+
+
 def is_paragraph(chunk):
     """
     Checks if the chunk of text is an ordinary paragraph, meaning it doesn't match any special markdown syntax.
     """
+    # Enhanced bullet point detection with various Unicode characters
+    bullet_pattern = r"^[\-–—‐‑•◦▪▫‣⁃]\s+(.+)"
+    
     # Matches for different markdown syntax
     if (
         not re.match(r"^(#{1,6})\s+(.+)", chunk) and  # Not a header
-        not re.match(r"^-\s+(.+)", chunk) and         # Not a bullet point
+        not re.match(bullet_pattern, chunk) and       # Not a bullet point (enhanced)
         not re.match(r"^\d+\.\s+(.+)", chunk) and     # Not a numbered list
         not re.match(r"^\|.+\|", chunk) and           # Not a table row
         not re.match(r"^[-*_]{3,}$", chunk)           # Not a horizontal line
@@ -488,9 +581,12 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         received_styling, cleaned_chunk = preprocess_nested_styles(chunk, index, paragraph_flag, debug=debug)
         style_requests.extend(received_styling)
 
+        # Enhanced bullet point pattern to support various Unicode characters
+        bullet_pattern = r"^[\-–—‐‑•◦▪▫‣⁃]\s+(.+)"
+        
         # Matches detected 
         header_match = re.match(r"^(#{1,6})\s+(.+)", cleaned_chunk)
-        bullet_point_match = re.match(r"^-\s+(.+)", cleaned_chunk)
+        bullet_point_match = re.match(bullet_pattern, cleaned_chunk)
         numbered_list_match = re.match(r"^\d+\.\s+(.+)", cleaned_chunk)
         table_match = re.match(r"^\|.+\|", cleaned_chunk)
         horizontal_line_match = re.match(r"^[-*_]{3,}$", cleaned_chunk)
@@ -503,7 +599,16 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
         
         # If the chunk has unordered list markdown syntax add the request
         elif bullet_point_match:
-            text = cleaned_chunk[2:].strip()
+            # Find the bullet character and calculate the proper offset
+            bullet_char = cleaned_chunk[0]
+            # Calculate proper prefix length - find first space after bullet char
+            space_index = cleaned_chunk.find(' ')
+            if space_index != -1:
+                prefix_length = space_index + 1
+                text = cleaned_chunk[prefix_length:].strip()
+            else:
+                # Fallback to old behavior if no space found
+                text = cleaned_chunk[2:].strip()
             requests.extend(get_unordered_list_request(text, index, debug=debug))
 
         # If the chunk has ordered list markdown syntax add the request
