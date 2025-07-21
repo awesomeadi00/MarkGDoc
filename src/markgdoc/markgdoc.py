@@ -265,26 +265,194 @@ def authenticate_google_drive(credentials_file, scopes):
     return build("drive", "v3", credentials=creds)
 
 
-def create_empty_google_doc(document_title, credentials_file, scopes):
+def authenticate_google_docs(credentials_file, scopes):
+    """
+    Authentication of Google Docs API for document manipulation
+    """
+    creds = service_account.Credentials.from_service_account_file(
+        credentials_file, scopes=scopes
+    )
+    return build("docs", "v1", credentials=creds)
+
+
+def find_or_create_folder(drive_service, folder_name, parent_folder_id=None):
+    """
+    Find an existing folder or create a new one in Google Drive.
+    
+    Args:
+        drive_service: Authenticated Google Drive service
+        folder_name: Name of the folder to find or create
+        parent_folder_id: ID of the parent folder (None for root)
+    
+    Returns:
+        folder_id: ID of the found or created folder
+    """
+    # Search for existing folder
+    query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    if parent_folder_id:
+        query += f" and '{parent_folder_id}' in parents"
+    
+    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+    folders = results.get('files', [])
+    
+    if folders:
+        return folders[0]['id']
+    
+    # Create new folder if not found
+    folder_metadata = {
+        'name': folder_name,
+        'mimeType': 'application/vnd.google-apps.folder'
+    }
+    
+    if parent_folder_id:
+        folder_metadata['parents'] = [parent_folder_id]
+    
+    folder = drive_service.files().create(body=folder_metadata).execute()
+    return folder['id']
+
+
+def get_existing_document_id(drive_service, document_name, folder_id=None):
+    """
+    Search for an existing Google Doc by name.
+    
+    Args:
+        drive_service: Authenticated Google Drive service
+        document_name: Name of the document to find
+        folder_id: ID of the folder to search in (None for all files)
+    
+    Returns:
+        document_id: ID of the found document, or None if not found
+    """
+    query = f"name='{document_name}' and mimeType='application/vnd.google-apps.document' and trashed=false"
+    if folder_id:
+        query += f" and '{folder_id}' in parents"
+    
+    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+    documents = results.get('files', [])
+    
+    return documents[0]['id'] if documents else None
+
+
+def clear_document_content(docs_service, doc_id):
+    """
+    Clear all content from an existing Google Doc.
+    
+    Args:
+        docs_service: Authenticated Google Docs service
+        doc_id: ID of the document to clear
+    """
+    # Get the document to find the end index
+    doc = docs_service.documents().get(documentId=doc_id).execute()
+    content = doc.get('body', {}).get('content', [])
+    
+    if not content:
+        return
+    
+    # Find the end index of the document
+    end_index = 1
+    for element in content:
+        if 'endIndex' in element:
+            end_index = max(end_index, element['endIndex'])
+    
+    # Delete all content except the first character (which is required)
+    if end_index > 1:
+        delete_request = {
+            'deleteContentRange': {
+                'range': {
+                    'startIndex': 1,
+                    'endIndex': end_index - 1
+                }
+            }
+        }
+        
+        docs_service.documents().batchUpdate(
+            documentId=doc_id,
+            body={'requests': [delete_request]}
+        ).execute()
+
+
+def create_empty_google_doc(document_title, credentials_file, scopes, folder_id=None, set_public_permissions=True):
     """
     This helper function can be used to create an empty google docs
-    Simply make sure you pass the path to your credentials file and scopes of what you aim to use it for
+    
+    Args:
+        document_title: Title for the new document
+        credentials_file: Path to the credentials file
+        scopes: API scopes to use
+        folder_id: ID of the folder to create the document in (None for root)
+        set_public_permissions: Whether to set public write permissions
+    
+    Returns:
+        doc_id: ID of the created document
+        doc_url: URL of the created document
     """
     drive_service = authenticate_google_drive(credentials_file, scopes)
     doc_metadata = {
         "name": document_title,
         "mimeType": "application/vnd.google-apps.document",
     }
+    
+    # Add parent folder if specified
+    if folder_id:
+        doc_metadata["parents"] = [folder_id]
 
     doc = drive_service.files().create(body=doc_metadata).execute()
     doc_id = doc["id"]
 
     # Set permissions to allow user to view and edit immediately
-    permission_body = {"type": "anyone", "role": "writer"}
-    drive_service.permissions().create(fileId=doc_id, body=permission_body).execute()
+    if set_public_permissions:
+        permission_body = {"type": "anyone", "role": "writer"}
+        drive_service.permissions().create(fileId=doc_id, body=permission_body).execute()
 
     doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
     return doc_id, doc_url
+
+
+def get_or_create_document(document_title, credentials_file, scopes, folder_name=None, 
+                          use_existing=False, clear_existing=True, set_public_permissions=True):
+    """
+    Get an existing document or create a new one with advanced options.
+    
+    Args:
+        document_title: Title of the document
+        credentials_file: Path to the credentials file
+        scopes: API scopes to use
+        folder_name: Name of the folder to search/create in (None for root)
+        use_existing: Whether to use existing document if found
+        clear_existing: Whether to clear content from existing document
+        set_public_permissions: Whether to set public write permissions
+    
+    Returns:
+        doc_id: ID of the document
+        doc_url: URL of the document
+        was_existing: Boolean indicating if document already existed
+    """
+    drive_service = authenticate_google_drive(credentials_file, scopes)
+    docs_service = authenticate_google_docs(credentials_file, scopes)
+    
+    folder_id = None
+    if folder_name:
+        folder_id = find_or_create_folder(drive_service, folder_name)
+    
+    # Try to find existing document
+    existing_doc_id = None
+    if use_existing:
+        existing_doc_id = get_existing_document_id(drive_service, document_title, folder_id)
+    
+    if existing_doc_id:
+        # Use existing document
+        if clear_existing:
+            clear_document_content(docs_service, existing_doc_id)
+        
+        doc_url = f"https://docs.google.com/document/d/{existing_doc_id}/edit"
+        return existing_doc_id, doc_url, True
+    else:
+        # Create new document
+        doc_id, doc_url = create_empty_google_doc(
+            document_title, credentials_file, scopes, 
+            folder_id, set_public_permissions
+        )
+        return doc_id, doc_url, False
 
 
 def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
@@ -589,11 +757,36 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
     send_batch_update(docs_service, doc_id, style_requests)
 
 
-def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, debug=False):
-    doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scopes)
+def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, 
+                          folder_name=None, use_existing=False, clear_existing=True, 
+                          set_public_permissions=True, debug=False):
+    """
+    Convert markdown content to Google Docs with advanced document management options.
+    
+    Args:
+        content_markdown: Markdown content to convert
+        document_title: Title of the document
+        docs_service: Authenticated Google Docs service
+        credentials_file: Path to the credentials file
+        scopes: API scopes to use
+        folder_name: Name of the folder to create/search in (None for root)
+        use_existing: Whether to use existing document if found
+        clear_existing: Whether to clear content from existing document
+        set_public_permissions: Whether to set public write permissions
+        debug: Enable debug output
+    
+    Returns:
+        dict: Contains doc_url, doc_id, was_existing, and folder_info
+    """
+    doc_id, doc_url, was_existing = get_or_create_document(
+        document_title, credentials_file, scopes, folder_name,
+        use_existing, clear_existing, set_public_permissions
+    )
 
     if debug: 
-        print(f"Google Doc Link: {doc_url}\n")
+        status = "Found existing" if was_existing else "Created new"
+        folder_info = f" in folder '{folder_name}'" if folder_name else " in root"
+        print(f"{status} Google Doc{folder_info}: {doc_url}\n")
     
     def stream_content():
         process_markdown_content(docs_service, doc_id, content_markdown, debug=debug)
@@ -604,5 +797,10 @@ def convert_to_google_docs(content_markdown, document_title, docs_service, crede
     if debug:
         content_thread.join()
     
-    return doc_url
+    return {
+        'doc_url': doc_url,
+        'doc_id': doc_id,
+        'was_existing': was_existing,
+        'folder_info': folder_name
+    }
     
