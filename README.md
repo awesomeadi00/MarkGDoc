@@ -180,13 +180,19 @@ If you don't have any of these setup, checkout our documentation on how to setup
 
 Once properly setup, you can run the command: 
 
-```
+```shell
 python -m markgdoc
+
+# Debug mode
+python -m markgdoc --debug
 ```
 
-Additionally you can also run the program as the following for Debugging Print Statements of all the requests to show in your terminal
-```
-python -m markgdoc --debug
+If installed properly, you can just run it by itself: 
+```shell
+markgdoc 
+
+# Debug mode
+markgdoc --debug
 ```
 
 

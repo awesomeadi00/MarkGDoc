@@ -91,25 +91,6 @@ When you run MarkGDoc for the first time:
 
 > **Note:** The `token.json` file stores your authorization. If you delete it, you'll need to authorize again on the next run.
 
-### Troubleshooting: "Error 403: access_denied"
-
-If you see this error when trying to authorize:
-
-**Problem:** Your email address is not listed as a test user in the OAuth consent screen.
-
-**Solution:**
-1. Go back to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to **APIs & Services** → **OAuth consent screen**
-3. In the left navigation menu, click on **"Audience"**
-4. Look for the **"Test users"** section
-5. Click **"Add Users"** or the **"+"** button
-6. Add your email address (the exact one you're using to sign in to Google)
-7. Click **"Add"** or **"Save"**
-8. Wait a minute for changes to propagate
-9. Try running MarkGDoc again - the browser should now allow you to authorize
-
-> **Note:** If you're using the app yourself, you can keep it in "Testing" mode. If you want to publish it for others to use, you'll need to go through Google's verification process.
-
 
 ## Creating a Google Doc using the GCP API
 
