@@ -1,17 +1,23 @@
-# Guide on using Google Cloud Platform
+# Guide on using Google Cloud Platform with OAuth2
 
-In this guide, you will learn how to setup a project on the Google Cloud Platform (GCP) and how to retrieve your credentials.json file which will authenticate your python programs to connect to the API. This way you will be able to create Google Docs from Python, and control what to insert/delete from the Google Docs. 
+In this guide, you will learn how to setup a project on the Google Cloud Platform (GCP) and how to retrieve your OAuth2 client secrets file which will authenticate your python programs to connect to the API. This way you will be able to create Google Docs from Python, and control what to insert/delete from the Google Docs. 
+
+**Important:** MarkGDoc uses OAuth2 authentication, which means:
+- Files will be created in **YOUR** Google Drive (not a service account's Drive)
+- Files will use **YOUR** storage quota (typically 15GB free)
+- On first run, a browser will open for you to authorize the application
+- After authorization, a `token.json` file will be saved for future use
 
 For more information about Google Docs API Requests and how to make them yourself, visit: [Google Docs API Documentation](https://developers.google.com/docs/api/reference/rest)
 
 
-## Setting up a Project on Google Cloud Platform (GCP) - Retrieving credentials.json file
+## Setting up a Project on Google Cloud Platform (GCP) - Retrieving OAuth2 Client Secrets
 
 ### 1. Create a New Project on the Google Cloud Console (GCP)
 
-- Click on the following Link: [Google Cloud Console]("https://console.cloud.google.com/")
+- Click on the following Link: [Google Cloud Console](https://console.cloud.google.com/)
 
-- Create a new projecet by clicking on the dropdown menu on the top left and then on `New Project`
+- Create a new project by clicking on the dropdown menu on the top left and then on `New Project`
 
 - Name your project to whatever you like. 
 
@@ -23,29 +29,86 @@ For more information about Google Docs API Requests and how to make them yoursel
 
 - Do the same process for `Google Drive API` by Google Enterprise API
 
-### 3. Create a Service Account
+### 3. Configure OAuth Consent Screen
 
 - Click on the Navigation Bar at the very top left and click on `View Products`. 
 
-- Search for `APIs and services` as well as `IAM and admin` and pin both of these products. These two should now appear on your Navigation Bar.
+- Search for `APIs and services` and pin it. It should now appear on your Navigation Bar.
 
-- Click on `APIs and services` and then on `Credentials`
+- Click on `APIs and services` and then on `OAuth consent screen`
 
-- At the bottom where it says Service Accounts, on the right side click on `Manage Service Accounts`
+- Click on `Get Started` if not configured
 
-- Create a new Service Account by clicking on the button at the very top. You can choose the name and access rights for this project. 
+- Fill in the required information:
+  - **App name**: Enter a name (e.g., "MarkGDoc")
+  - **User support email**: Select your email address
+  - **Developer contact information**: Enter your email address
+  - Select **"External"** (unless you have a Google Workspace account, then you can use "Internal")
+  - Click **"Create"**
 
-### 4. Retrieve credentials.json file
+- After creating, you'll see the OAuth overview page. In the left navigation menu, click on **"Audience"**:
+  - Look for the **"Test users"** section
+  - Click **"Add Users"**
+  - Add your own email address (the exact email you'll use to sign in to Google)
+  - You can add multiple email addresses if needed
+  - Click **"Save"**
+  
 
-- Once you have created a new service account, it should show under `Service Accounts` of the `IAM and admin` tab. 
+### 4. Create OAuth2 Client ID Credentials
 
-- Click on the three-dots on the right side of this service account labeled as `Actions`
+- Still in `APIs and services`, click on **"Credentials"** in the left sidebar
 
-- Click on `Manage Keys`
+- Click **"+ CREATE CREDENTIALS"** at the top
 
-- Click on `Add Key` > `Create Key` > `JSON Format` and then Create. 
+- Select **"OAuth client ID"**
 
-- This will download your **`credentials.json`** file onto your Downloads. Simply add this file onto your project directory to connect to this project on the GCP.
+- If prompted, select **"Desktop app"** as the application type
+
+- Give it a name (e.g., "MarkGDoc Desktop Client")
+
+- Click **"Create"**
+
+- A dialog will appear with your **Client ID** and **Client Secret**
+
+- Click **"DOWNLOAD JSON"** - this will download your OAuth2 client secrets file
+
+- **Rename this file to `credentials.json`** and save it in your project directory
+
+> **Note:** The downloaded file contains your OAuth2 client credentials. Keep it secure and don't share it publicly.
+
+### 5. First Run Authorization
+
+When you run MarkGDoc for the first time:
+
+1. The program will ask for the path to your `credentials.json` file
+2. A browser window will automatically open
+3. You'll be asked to sign in to your Google account
+4. You'll see a consent screen asking for permissions to access Google Docs and Drive
+5. Click **"Allow"** or **"Continue"**
+6. The browser will show "The authentication flow has completed"
+7. A `token.json` file will be created in the same directory as your `credentials.json`
+8. Future runs will use this token automatically (no browser needed)
+
+> **Note:** The `token.json` file stores your authorization. If you delete it, you'll need to authorize again on the next run.
+
+### Troubleshooting: "Error 403: access_denied"
+
+If you see this error when trying to authorize:
+
+**Problem:** Your email address is not listed as a test user in the OAuth consent screen.
+
+**Solution:**
+1. Go back to [Google Cloud Console](https://console.cloud.google.com/)
+2. Navigate to **APIs & Services** → **OAuth consent screen**
+3. In the left navigation menu, click on **"Audience"**
+4. Look for the **"Test users"** section
+5. Click **"Add Users"** or the **"+"** button
+6. Add your email address (the exact one you're using to sign in to Google)
+7. Click **"Add"** or **"Save"**
+8. Wait a minute for changes to propagate
+9. Try running MarkGDoc again - the browser should now allow you to authorize
+
+> **Note:** If you're using the app yourself, you can keep it in "Testing" mode. If you want to publish it for others to use, you'll need to go through Google's verification process.
 
 
 ## Creating a Google Doc using the GCP API

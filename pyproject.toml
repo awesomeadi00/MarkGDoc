@@ -24,6 +24,8 @@ dependencies = [
   "google-auth-oauthlib",
   "google-auth-httplib2",
   "google-api-python-client",
+  "tqdm",
+  "colorama",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +38,10 @@ dev = ["pytest"]
 
 [project.scripts]
 markgdoc = "markgdoc.__main__:main"
+
+[tool.setuptools]
+packages = ["markgdoc"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
 "markgdoc" = ["example_markdown_files/*.md"]

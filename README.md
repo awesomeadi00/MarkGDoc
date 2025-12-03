@@ -32,7 +32,7 @@ You need to ensure to pass:
 
 - `docs_service` : Your google docs build service
 
-- `credentials_file` : The path to your credentials.json file 
+- `credentials_file` : The path to your OAuth2 client secrets JSON file 
 
 - `scopes` : Scopes to define the access for the application. 
     
@@ -60,7 +60,7 @@ doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scop
 You need to ensure to pass: 
 - `document_title` : A string of the title of your google docs
 
-- `credentials_file` : The path to your credentials.json file 
+- `credentials_file` : The path to your OAuth2 client secrets JSON file 
 
 - `scopes` : Scopes to define the access for the application.
 
@@ -163,14 +163,20 @@ table_content_request = markgdoc.get_table_content_request(table_data, 255)
 # Running the __main__.py file 
 
 ### **Important Note:**
-Before you go ahead and run your this program, please make sure that: 
+Before you go ahead and run this program, please make sure that: 
 - You have setup a Google Cloud Project with Google Docs API enabled. 
 
-- You have a valid and active `credentials.json` key for your Google Cloud Console Project. 
+- You have a valid OAuth2 `credentials.json` client secrets file from your Google Cloud Console Project. 
 
 The above steps are required for you to run this main as these are the steps needed to connect to the API and create a Google Docs through Python. 
 
-If you don't have any of these setup, checkout our documentation on how to setup a a Google Cloud Console Project: [Guide on How to Setup Your Google Cloud Console Project](https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md)
+**OAuth2 Authentication:**
+- MarkGDoc uses OAuth2 authentication, which means files will be created in **YOUR** Google Drive
+- Files will use **YOUR** storage quota (typically 15GB free)
+- On first run, a browser will open for you to authorize the application
+- After authorization, a `token.json` file will be saved for future use
+
+If you don't have any of these setup, checkout our documentation on how to setup a Google Cloud Console Project: [Guide on How to Setup Your Google Cloud Console Project](https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md)
 
 Once properly setup, you can run the command: 
 
@@ -203,7 +209,7 @@ Contributions are definitely accepted and we are open to growing this package. B
     Change into the cloned directory:
 
     ```shell
-    cd markgdoc
+    cd MarkGDoc
     ```
 
 3. **Install pipenv**:
@@ -214,30 +220,35 @@ Contributions are definitely accepted and we are open to growing this package. B
     pip install pipenv
     ```
 
-4. **Locking Pipfile if Pipfile.lock not present**:
-
-   If the Pipfile.lock file is not present or updated, use the following command to lock the pipfile
-
-    ```shell
-    pipenv lock
-    ```
-
-5. **Install Dependencies**: 
+4. **Install Dependencies**: 
    
-    In order to install the dependencies, first create an empty folder and rename it as `.venv`. After this step is done, then you can install your dependencies through the following command: 
+    Install all dependencies (including dev dependencies):
     
     ```shell
-    pipenv install
+    pipenv install --dev
     ```
-    > Note that `pipenv install --dev` install dev-packages as well.
+    
+    > Note: pipenv will automatically create a virtual environment (`.venv`) and lock the Pipfile for you. You don't need to do this manually.
 
-6. **Activate the virtual environment**:
+5. **Install the package in editable mode**:
+
+    This step is crucial! It allows you to test your local changes immediately:
+    
+    ```shell
+    pipenv install -e .
+    ```
+    
+    This installs your local package code so that when you run `python -m markgdoc`, it uses your local changes instead of the installed version.
+
+6. **Activate the virtual environment** (optional but recommended):
 
     Enter the virtual environment using:
 
     ```shell
     pipenv shell
     ```
+
+    > **Note:** If you skip this step, you'll need to prefix commands with `pipenv run` (e.g., `pipenv run python -m markgdoc` instead of `python -m markgdoc`).
 
 7. **Make your changes**:
 
@@ -251,7 +262,25 @@ Contributions are definitely accepted and we are open to growing this package. B
     pipenv run python -m pytest
     ```
 
-8. **Submit a Pull Request**:
+    > **Note:** If you activated the virtual environment in step 6, you can use `python -m pytest` directly.
+
+9. **Test your changes locally**:
+
+    Test that your changes work by running the main program:
+
+    ```shell
+    python -m markgdoc
+    ```
+
+    Or with debug mode:
+
+    ```shell
+    python -m markgdoc --debug
+    ```
+
+    > **Note:** If you didn't activate the virtual environment in step 6, use `pipenv run python -m markgdoc` instead.
+
+10. **Submit a Pull Request**:
 
     After making your changes and verifying the functionality, commit your changes and push your branch to GitHub. Then, submit a pull request to the main branch for review.
 

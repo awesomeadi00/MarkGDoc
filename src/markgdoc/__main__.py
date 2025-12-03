@@ -1,11 +1,14 @@
 import os
 import argparse
-from google.oauth2 import service_account
 from googleapiclient.discovery import build
+from colorama import init, Fore, Style
 from . import markgdoc
 
-# Initialization for this global variable constant. This is the path to your credentials.json file, you can edit it to whatever path you want 
-SERVICE_ACCOUNT_FILE = "credentials.json"
+# Initialize colorama for cross-platform color support
+init(autoreset=True)
+
+# Initialization for this global variable constant. This is the path to your OAuth2 client secrets file
+CLIENT_SECRETS_FILE = "credentials.json"
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive",
@@ -27,31 +30,40 @@ def main(debug=False):
         print("------ DEBUG MODE ON ------\n")
 
     print("First, let's set you up!")
-    credentials_path_input = input("Please provide the path for where your credentials.json file is: ")
+    print(f"{Fore.YELLOW}Note: MarkGDoc uses OAuth2 authentication.{Style.RESET_ALL}")
+    print("Files will be created in YOUR Google Drive using YOUR storage quota.")
+    print("On first run, a browser will open for you to authorize the application.")
+    print("For more information on how to get your OAuth2 client secrets file, please checkout our documentation: https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md\n")
+    credentials_path_input = input("Please provide the path for where your OAuth2 client secrets file is: ")
 
     # Check if the provided path is valid and accessible
     if os.path.isfile(credentials_path_input):
-        global SERVICE_ACCOUNT_FILE
-        SERVICE_ACCOUNT_FILE = credentials_path_input
-        print("Credentials file found and set successfully!\n")
+        global CLIENT_SECRETS_FILE
+        CLIENT_SECRETS_FILE = credentials_path_input
+        print(f"{Fore.GREEN}Client secrets file found and set successfully!{Style.RESET_ALL}\n")
     else:
-        print("Error: The file path provided does not exist or is not a valid file.")
+        print(f"{Fore.RED}Error: The file path provided does not exist or is not a valid file.{Style.RESET_ALL}")
         exit(-1) 
     
+    # Determine token file location (store in same directory as credentials)
+    token_file = os.path.join(os.path.dirname(CLIENT_SECRETS_FILE), "token.json")
+    
     print("Building...")
+    print(f"{Fore.YELLOW}If this is your first time, a browser window will open for authorization...{Style.RESET_ALL}\n")
 
-    # Attempt to build the Google Docs service with the updated SERVICE ACCOUNT FILE
+    # Attempt to build the Google Docs service using OAuth2
     try:
-        docs_service = build(
-            "docs",
-            "v1",
-            credentials=service_account.Credentials.from_service_account_file(
-                SERVICE_ACCOUNT_FILE, scopes=SCOPES
-            ),
-        )
-        print("Google Docs Service Initialized Successfully!\n")
+        from .markgdoc import get_oauth2_credentials
+        creds = get_oauth2_credentials(CLIENT_SECRETS_FILE, token_file, SCOPES, debug=debug)
+        docs_service = build("docs", "v1", credentials=creds)
+        print(f"{Fore.GREEN}Google Docs Service Initialized Successfully!{Style.RESET_ALL}\n")
+    except FileNotFoundError as e:
+        print(f"{Fore.RED}Error: {e}{Style.RESET_ALL}")
+        print(f"\nPlease download the OAuth2 client secrets file from Google Cloud Console.")
+        print(f"See the setup guide for instructions: https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md")
+        exit(-1)
     except Exception as e:
-        print(f"Error: Google Docs service initialization failed. {e}")
+        print(f"{Fore.RED}Error: Google Docs service initialization failed. {e}{Style.RESET_ALL}")
         exit(-1) 
     
     print("============================================ MARKGDOC MENU ============================================")
@@ -73,14 +85,14 @@ def main(debug=False):
                 with open(markdownfile_path, 'r') as file:
                     md_content = file.read()
 
-                print("Converting your Markdown to a Google Doc!")
-                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=SERVICE_ACCOUNT_FILE, scopes=SCOPES, debug=debug)
+                print(f"{Fore.YELLOW}Conversion Started! Markdown to Google Doc!{Style.RESET_ALL}")
+                doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=CLIENT_SECRETS_FILE, scopes=SCOPES, token_file=token_file, debug=debug)
                 
                 if not debug: 
-                    print(f"Google Doc Link: {doc_url}\n")
+                    print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
 
             else:
-                print("Error: The file path provided does not exist or is not a valid file.")
+                print(f"{Fore.RED}Error: The file path provided does not exist or is not a valid file.{Style.RESET_ALL}")
         
         # Example File from Local Project Directory
         elif user_input == "2":
@@ -88,7 +100,7 @@ def main(debug=False):
             md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
             while(int(md_example_fileno) > MARKDOWN_FILES_COUNT or int(md_example_fileno) <= 0): 
-                print("Incorrect Input!")
+                print(f"{Fore.RED}Incorrect Input!{Style.RESET_ALL}")
                 md_example_fileno = input(f"Please input any number from 1-{MARKDOWN_FILES_COUNT} and we will send the Google Docs Link of that example: ")
 
             md_example_file = f"md_ex{md_example_fileno}"
@@ -99,27 +111,27 @@ def main(debug=False):
                 with open(md_inputfile, 'r') as file:
                     md_content = file.read()
             except FileNotFoundError as e: 
-                print(f"File could not be opened: {e}")
+                print(f"{Fore.RED}File could not be opened: {e}{Style.RESET_ALL}")
                 exit(-1)
 
             document_title = "Example Markdown File"
-            print("Converting your Markdown to a Google Doc!")
-            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=SERVICE_ACCOUNT_FILE, scopes=SCOPES, debug=debug)
+            print(f"{Fore.YELLOW}Conversion Started! Markdown to Google Doc!{Style.RESET_ALL}")
+            doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=CLIENT_SECRETS_FILE, scopes=SCOPES, token_file=token_file, debug=debug)
             if not debug: 
-                print(f"Google Doc Link: {doc_url}\n")
+                print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
 
         elif user_input == "q" or user_input == "Q":
             break
         
         else:
-            print("\nInvalid Response. Please input one of the numbers for that request.")
+            print(f"\n{Fore.RED}Invalid Response. Please input one of the numbers for that request.{Style.RESET_ALL}")
         
         while True:
             user_cont = input("Would you like to continue? (y/n): ")
             if user_cont in ["y", "n"]:
                 break
             else:
-                print("\nInvalid Input.")
+                print(f"\n{Fore.RED}Invalid Input.{Style.RESET_ALL}")
 
         if user_cont == "n" or user_cont == "q" or user_cont == "Q":
             break

@@ -1,7 +1,18 @@
 import re
+import json
+import os
 import threading
 from google.oauth2 import service_account
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from tqdm import tqdm
+from colorama import init, Fore, Style
+
+# Initialize colorama for cross-platform color support
+init(autoreset=True)
 
 # Markdown Syntax Notes: https://www.markdownguide.org/basic-syntax/
 
@@ -253,38 +264,186 @@ def get_table_content_request(table_data, index, debug=False):
 
 # ========================================================================================================================
 # Google Doc Creation Helper Functions ====================================================================================
-def authenticate_google_drive(credentials_file, scopes):
+def get_oauth2_credentials(client_secrets_file, token_file, scopes, debug=False):
     """
-    Authentication of Google Drive for Google Doc Creation\
-    Simply make sure you pass the path to your credentials file and scopes of what you aim to use it for
+    Get OAuth2 credentials for user authentication.
+    This will open a browser for the user to authorize the application on first run.
+    Subsequent runs will use the stored token.
+    
+    Args:
+        client_secrets_file: Path to the OAuth2 client secrets JSON file
+        token_file: Path where the token will be stored/loaded from
+        scopes: List of OAuth2 scopes
+        debug: Whether to print debug information
+    
+    Returns:
+        Credentials object for use with Google APIs
     """
+    creds = None
+    
+    # Check if we have a stored token
+    if os.path.exists(token_file):
+        try:
+            creds = Credentials.from_authorized_user_file(token_file, scopes)
+            if debug:
+                print(f"[DEBUG] Loaded existing token from {token_file}")
+        except Exception as e:
+            if debug:
+                print(f"[DEBUG] Error loading token: {e}")
+    
+    # If there are no (valid) credentials available, let the user log in
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            # Refresh the token
+            if debug:
+                print("[DEBUG] Token expired, refreshing...")
+            try:
+                creds.refresh(Request())
+            except Exception as e:
+                if debug:
+                    print(f"[DEBUG] Error refreshing token: {e}")
+                creds = None
+        
+        if not creds:
+            # Run the OAuth flow
+            if not os.path.exists(client_secrets_file):
+                raise FileNotFoundError(
+                    f"OAuth2 client secrets file not found: {client_secrets_file}\n"
+                    "Please download it from Google Cloud Console (see setup guide)."
+                )
+            
+            if debug:
+                print(f"[DEBUG] Starting OAuth2 flow with {client_secrets_file}")
+            
+            flow = InstalledAppFlow.from_client_secrets_file(
+                client_secrets_file, scopes
+            )
+            creds = flow.run_local_server(port=0)
+        
+        # Save the credentials for the next run
+        with open(token_file, 'w') as token:
+            token.write(creds.to_json())
+        
+        if debug:
+            print(f"[DEBUG] Token saved to {token_file}")
+    
+    return creds
 
-    creds = service_account.Credentials.from_service_account_file(
-        credentials_file, scopes=scopes
-    )
+
+def authenticate_google_drive(credentials_file, scopes, token_file=None, debug=False):
+    """
+    Authentication of Google Drive for Google Doc Creation.
+    Uses OAuth2 user authentication (files will be created in the user's Drive).
+    
+    Args:
+        credentials_file: Path to OAuth2 client secrets JSON file
+        scopes: List of OAuth2 scopes
+        token_file: Path to store/load OAuth2 token (defaults to token.json in same directory as credentials)
+        debug: Whether to print debug information
+    """
+    # Default token file location
+    if token_file is None:
+        token_file = os.path.join(os.path.dirname(credentials_file), "token.json")
+    
+    creds = get_oauth2_credentials(credentials_file, token_file, scopes, debug=debug)
     return build("drive", "v3", credentials=creds)
 
 
-def create_empty_google_doc(document_title, credentials_file, scopes):
+def create_empty_google_doc(document_title, credentials_file, scopes, token_file=None, debug=False):
     """
-    This helper function can be used to create an empty google docs
-    Simply make sure you pass the path to your credentials file and scopes of what you aim to use it for
+    This helper function can be used to create an empty google docs.
+    Uses OAuth2 authentication - files will be created in the user's Google Drive.
+    
+    Args:
+        document_title: Title for the Google Doc
+        credentials_file: Path to OAuth2 client secrets JSON file
+        scopes: List of OAuth2 scopes
+        token_file: Path to store/load OAuth2 token (optional)
+        debug: Whether to print debug information
     """
-    drive_service = authenticate_google_drive(credentials_file, scopes)
+    drive_service = authenticate_google_drive(credentials_file, scopes, token_file=token_file, debug=debug)
     doc_metadata = {
         "name": document_title,
         "mimeType": "application/vnd.google-apps.document",
     }
 
-    doc = drive_service.files().create(body=doc_metadata).execute()
-    doc_id = doc["id"]
+    try:
+        doc = drive_service.files().create(body=doc_metadata).execute()
+        doc_id = doc["id"]
+        
+        if debug:
+            print(f"[DEBUG] Document created with ID: {doc_id}")
 
-    # Set permissions to allow user to view and edit immediately
-    permission_body = {"type": "anyone", "role": "writer"}
-    drive_service.permissions().create(fileId=doc_id, body=permission_body).execute()
+        # Set permissions to allow user to view and edit immediately
+        permission_body = {"type": "anyone", "role": "writer"}
+        drive_service.permissions().create(fileId=doc_id, body=permission_body).execute()
 
-    doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
-    return doc_id, doc_url
+        doc_url = f"https://docs.google.com/document/d/{doc_id}/edit"
+        return doc_id, doc_url
+    except HttpError as e:
+        # Get detailed error information
+        error_content = str(e)
+        error_details = []
+        
+        # Try to extract error details from the response
+        try:
+            if hasattr(e, 'content') and e.content:
+                error_json = json.loads(e.content.decode('utf-8'))
+                error_details = error_json.get('error', {}).get('errors', [])
+        except:
+            pass
+        
+        # Handle storage quota exceeded error with a user-friendly message
+        if e.resp.status == 403 and "storage quota" in error_content.lower():
+            print("\n" + "="*70)
+            print(f"{Fore.RED}ERROR: Storage Quota Exceeded{Style.RESET_ALL}")
+            print("="*70)
+            print("\nThe service account's Google Drive storage quota has been exceeded.")
+            print("\nTo fix this issue:")
+            print("1. Free up space in the service account's Drive (delete old files)")
+            print("   - Access the service account's Drive via API or create a script to list/delete files")
+            print("2. Use OAuth2 authentication instead of service accounts (authenticate as yourself)")
+            print("   - This would require code changes to use user authentication")
+            print("3. Use Google Workspace with domain-wide delegation (if available)")
+            print("4. Create a new service account (starts with fresh quota)")
+            
+            # Show detailed error if available
+            if error_details:
+                print(f"\n{Fore.YELLOW}Detailed error information:{Style.RESET_ALL}")
+                for detail in error_details:
+                    print(f"  - {detail.get('message', 'Unknown error')}")
+                    if detail.get('reason'):
+                        print(f"    Reason: {detail.get('reason')}")
+            
+            print("\nFor detailed instructions, see:")
+            print("https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md")
+            print("="*70 + "\n")
+            raise SystemExit(1)
+        
+        # Handle other 403 errors (permission issues)
+        elif e.resp.status == 403:
+            print("\n" + "="*70)
+            print(f"{Fore.RED}ERROR: Permission Denied{Style.RESET_ALL}")
+            print("="*70)
+            print(f"\nThe service account does not have permission to perform this operation.")
+            if error_details:
+                for detail in error_details:
+                    print(f"\nError: {detail.get('message', 'Unknown error')}")
+                    if detail.get('reason'):
+                        print(f"Reason: {detail.get('reason')}")
+            print("\nThis might mean:")
+            print("1. The service account doesn't have the required scopes")
+            print("2. The credentials file is invalid or expired")
+            print("="*70 + "\n")
+            raise SystemExit(1)
+        
+        # Re-raise other HttpErrors with more context
+        else:
+            print(f"\n{Fore.RED}HTTP Error {e.resp.status}:{Style.RESET_ALL}")
+            if error_details:
+                for detail in error_details:
+                    print(f"  {detail.get('message', 'Unknown error')}")
+            raise
 
 
 def preprocess_nested_styles(chunk, index, paragraph_flag, debug=False):
@@ -442,6 +601,7 @@ def is_paragraph(chunk):
         return True
     return False
 
+
 def send_batch_update(docs_service, doc_id, requests, rate_limit=120):
     """
     This is a helper function to send all the requests attained to the docs_service build. 
@@ -471,13 +631,16 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
     chunks = re.split(r"(?<=\n)", content_markdown)
 
     # Initializing variables, index = 1
-    chunks = iter(chunks)
+    chunks_list = list(chunks)
     index = 1
     text_requests = []
     style_requests = []
 
     # For each chunk detected: 
-    for chunk in chunks:
+    pbar = tqdm(total=len(chunks_list), desc="Converting...", unit="chunk", leave=True, ncols=80)
+    i = 0
+    while i < len(chunks_list):
+        chunk = chunks_list[i]
         # Initialize a chunk by stripping it and splitting into requests per chunk
         chunk = chunk.strip()
         requests = []
@@ -525,15 +688,16 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
 
             # Split the table into a list of table lines
             table_lines = [chunk]
-            while True:
-                try:
-                    next_chunk = next(chunks).strip()
-                    if re.match(r"^\|.+\|", next_chunk):
-                        table_lines.append(next_chunk)
-                    else:
-                        break
-                except StopIteration:
+            i += 1
+            while i < len(chunks_list):
+                next_chunk = chunks_list[i].strip()
+                if re.match(r"^\|.+\|", next_chunk):
+                    table_lines.append(next_chunk)
+                    i += 1
+                    pbar.update(1)  # Update progress bar for each table row chunk consumed
+                else:
                     break
+            i -= 1  # Adjust back since we'll increment at the end of the loop
             
             # Create a 2D List of the table 
             table_data = preprocess_markdown_table("\n".join(table_lines))
@@ -581,16 +745,27 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
             # Table automatically updates index due to monitoring hence, no need to update index if it's a table
             if "insertText" in request and not table_flag:
                 index += len(request["insertText"]["text"])
+        
+        i += 1
+        pbar.update(1)
+
+    pbar.close()
 
     # Send batch updates to insert the text into the google doc
-    send_batch_update(docs_service, doc_id, text_requests)
+    if text_requests:
+        print("Sending text updates to Google Docs...")
+        send_batch_update(docs_service, doc_id, text_requests)
     
     # After inserting the text, send a separate batch update for style requests
-    send_batch_update(docs_service, doc_id, style_requests)
+    if style_requests:
+        print("Applying styles to Google Docs...")
+        send_batch_update(docs_service, doc_id, style_requests)
+    
+    print(f"{Fore.GREEN}✓ Conversion complete!{Style.RESET_ALL}")
 
 
-def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, debug=False):
-    doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scopes)
+def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, token_file=None, debug=False):
+    doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scopes, token_file=token_file, debug=debug)
 
     if debug: 
         print(f"Google Doc Link: {doc_url}\n")
@@ -601,8 +776,8 @@ def convert_to_google_docs(content_markdown, document_title, docs_service, crede
     content_thread = threading.Thread(target=stream_content)
     content_thread.start()
     
-    if debug:
-        content_thread.join()
+    # Always wait for the thread to complete (not just in debug mode)
+    content_thread.join()
     
     return doc_url
     
