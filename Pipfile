@@ -20,6 +20,7 @@ tqdm = "*"
 colorama = "*"
 pipenv = "*"
 shell = "*"
+markgdoc = {file = ".", editable = true}
 
 [requires]
 python_version = "3"

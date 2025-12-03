@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "5c251272fc11b26cdb44480e381969a84d868ba175a2ffb19b2d63c5057a7b6e"
+            "sha256": "0bc73a99349cb1d6c58f8df4cba272836caf1c0898ef838b13b237bd0a164f27"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -247,6 +247,11 @@
             ],
             "markers": "python_version >= '3.8'",
             "version": "==3.11"
+        },
+        "markgdoc": {
+            "editable": true,
+            "file": ".",
+            "markers": "python_version >= '3.7'"
         },
         "oauthlib": {
             "hashes": [

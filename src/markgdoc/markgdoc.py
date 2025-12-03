@@ -637,7 +637,11 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
     style_requests = []
 
     # For each chunk detected: 
-    pbar = tqdm(total=len(chunks_list), desc="Converting...", unit="chunk", leave=True, ncols=80)
+    # Only show progress bar if not in debug mode (debug mode shows detailed output)
+    if not debug:
+        pbar = tqdm(total=len(chunks_list), desc="Converting...", unit="chunk", leave=True, ncols=80)
+    else:
+        pbar = None
     i = 0
     while i < len(chunks_list):
         chunk = chunks_list[i]
@@ -694,7 +698,8 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
                 if re.match(r"^\|.+\|", next_chunk):
                     table_lines.append(next_chunk)
                     i += 1
-                    pbar.update(1)  # Update progress bar for each table row chunk consumed
+                    if pbar:
+                        pbar.update(1)  # Update progress bar for each table row chunk consumed
                 else:
                     break
             i -= 1  # Adjust back since we'll increment at the end of the loop
@@ -747,9 +752,11 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
                 index += len(request["insertText"]["text"])
         
         i += 1
-        pbar.update(1)
+        if pbar:
+            pbar.update(1)
 
-    pbar.close()
+    if pbar:
+        pbar.close()
 
     # Send batch updates to insert the text into the google doc
     if text_requests:
@@ -767,8 +774,8 @@ def process_markdown_content(docs_service, doc_id, content_markdown, debug=False
 def convert_to_google_docs(content_markdown, document_title, docs_service, credentials_file, scopes, token_file=None, debug=False):
     doc_id, doc_url = create_empty_google_doc(document_title, credentials_file, scopes, token_file=token_file, debug=debug)
 
-    if debug: 
-        print(f"Google Doc Link: {doc_url}\n")
+    # if debug: 
+    #     print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
     
     def stream_content():
         process_markdown_content(docs_service, doc_id, content_markdown, debug=debug)

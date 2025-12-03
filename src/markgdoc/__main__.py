@@ -88,8 +88,8 @@ def main(debug=False):
                 print(f"{Fore.YELLOW}Conversion Started! Markdown to Google Doc!{Style.RESET_ALL}")
                 doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=CLIENT_SECRETS_FILE, scopes=SCOPES, token_file=token_file, debug=debug)
                 
-                if not debug: 
-                    print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
+                # if not debug: 
+                print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
 
             else:
                 print(f"{Fore.RED}Error: The file path provided does not exist or is not a valid file.{Style.RESET_ALL}")
@@ -117,8 +117,9 @@ def main(debug=False):
             document_title = "Example Markdown File"
             print(f"{Fore.YELLOW}Conversion Started! Markdown to Google Doc!{Style.RESET_ALL}")
             doc_url = markgdoc.convert_to_google_docs(md_content, document_title, docs_service, credentials_file=CLIENT_SECRETS_FILE, scopes=SCOPES, token_file=token_file, debug=debug)
-            if not debug: 
-                print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
+            
+            # if not debug: 
+            print(f"{Fore.GREEN}Google Doc Link:{Style.RESET_ALL} {doc_url}\n")
 
         elif user_input == "q" or user_input == "Q":
             break
@@ -136,8 +137,14 @@ def main(debug=False):
         if user_cont == "n" or user_cont == "q" or user_cont == "Q":
             break
 
-if __name__ == "__main__":
+
+def cli():
+    """Entry point for the console script. Handles command-line arguments."""
     parser = argparse.ArgumentParser(description="Run MarkGDoc with Optional Debugging")
     parser.add_argument('--debug', action='store_true', help="Enable debug mode")
     args = parser.parse_args()
     main(debug=args.debug)
+
+
+if __name__ == "__main__":
+    cli()
