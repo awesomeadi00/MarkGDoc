@@ -1,5 +1,6 @@
 import os
 import argparse
+from pathlib import Path
 from googleapiclient.discovery import build
 from colorama import init, Fore, Style
 from . import markgdoc
@@ -14,6 +15,42 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 MARKDOWN_FILES_COUNT = 4
+
+
+def detect_credentials_file(debug=False):
+    """
+    Automatically detect credentials.json file in common locations.
+    Returns the path if found, None otherwise.
+    
+    Priority order:
+    1. Current working directory: ./credentials.json
+    2. Environment variable: MARKGDOC_CREDENTIALS_PATH
+    3. Home directory: ~/.markgdoc/credentials.json
+    """
+    # 1. Check current working directory
+    current_dir_creds = os.path.join(os.getcwd(), "credentials.json")
+    if os.path.isfile(current_dir_creds):
+        if debug:
+            print(f"{Fore.GREEN}[DEBUG] Found credentials.json in current directory{Style.RESET_ALL}")
+        return current_dir_creds
+    
+    # 2. Check environment variable
+    env_creds_path = os.environ.get("MARKGDOC_CREDENTIALS_PATH")
+    if env_creds_path and os.path.isfile(env_creds_path):
+        if debug:
+            print(f"{Fore.GREEN}[DEBUG] Found credentials.json from environment variable{Style.RESET_ALL}")
+        return env_creds_path
+    
+    # 3. Check home directory (~/.markgdoc/credentials.json)
+    home_dir = Path.home()
+    home_creds = home_dir / ".markgdoc" / "credentials.json"
+    if home_creds.is_file():
+        if debug:
+            print(f"{Fore.GREEN}[DEBUG] Found credentials.json in home directory{Style.RESET_ALL}")
+        return str(home_creds)
+    
+    # Not found
+    return None
 
 
 def main(debug=False):
@@ -34,16 +71,31 @@ def main(debug=False):
     print("Files will be created in YOUR Google Drive using YOUR storage quota.")
     print("On first run, a browser will open for you to authorize the application.")
     print("For more information on how to get your OAuth2 client secrets file, please checkout our documentation: https://github.com/awesomeadi00/MarkGDoc/blob/main/gcp_setup/gcp_setup_guide.md\n")
-    credentials_path_input = input("Please provide the path for where your OAuth2 client secrets file is: ")
-
-    # Check if the provided path is valid and accessible
-    if os.path.isfile(credentials_path_input):
-        global CLIENT_SECRETS_FILE
-        CLIENT_SECRETS_FILE = credentials_path_input
-        print(f"{Fore.GREEN}Client secrets file found and set successfully!{Style.RESET_ALL}\n")
+    
+    # Try to auto-detect credentials.json file
+    global CLIENT_SECRETS_FILE
+    detected_creds = detect_credentials_file(debug=debug)
+    
+    if detected_creds:
+        CLIENT_SECRETS_FILE = detected_creds
+        # Show which location was used
+        if detected_creds == os.path.join(os.getcwd(), "credentials.json"):
+            print(f"{Fore.GREEN}Using credentials.json from current directory{Style.RESET_ALL}\n")
+        elif detected_creds == os.environ.get("MARKGDOC_CREDENTIALS_PATH"):
+            print(f"{Fore.GREEN}Using credentials.json from environment variable (MARKGDOC_CREDENTIALS_PATH){Style.RESET_ALL}\n")
+        else:
+            print(f"{Fore.GREEN}Using credentials.json from {detected_creds}{Style.RESET_ALL}\n")
     else:
-        print(f"{Fore.RED}Error: The file path provided does not exist or is not a valid file.{Style.RESET_ALL}")
-        exit(-1) 
+        # No credentials found, prompt user
+        credentials_path_input = input("Please provide the path for where your OAuth2 client secrets file is: ")
+
+        # Check if the provided path is valid and accessible
+        if os.path.isfile(credentials_path_input):
+            CLIENT_SECRETS_FILE = credentials_path_input
+            print(f"{Fore.GREEN}Client secrets file found and set successfully!{Style.RESET_ALL}\n")
+        else:
+            print(f"{Fore.RED}Error: The file path provided does not exist or is not a valid file.{Style.RESET_ALL}")
+            exit(-1) 
     
     # Determine token file location (store in same directory as credentials)
     token_file = os.path.join(os.path.dirname(CLIENT_SECRETS_FILE), "token.json")
